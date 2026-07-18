@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Hosted Multi-Account Cloudflare Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Cloudflare Dashboard</h1>
+          <p>Unified Multi-Account Edge Management</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button id="btn-open-add-zone" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="M12 5v14"/>
+          </svg>
+          Add Domain
+        </button>
+        <button id="btn-open-accounts" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Accounts
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Ribbon -->
+    <section class="stats-ribbon">
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Connected Accounts</span>
+          <h2 id="stat-accounts">0</h2>
+        </div>
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Aggregated Zones</span>
+          <h2 id="stat-zones">0</h2>
+        </div>
+        <div class="stat-icon" style="color: var(--accent-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>System Status</span>
+          <h2 style="color: var(--status-active); font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
+            <span class="status-dot" style="background: var(--status-active); box-shadow: 0 0 10px var(--status-active);"></span>
+            API Online
+          </h2>
+        </div>
+        <div class="stat-icon" style="color: var(--status-active);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls Header -->
+    <section class="controls-header">
+      <div class="search-filter-group">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Search domains by name or account...">
+        </div>
+        <select id="account-filter" class="select-input">
+          <option value="all">All Accounts</option>
+        </select>
+      </div>
+      <div>
+        <button id="btn-refresh-zones" class="btn btn-secondary btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh Data
+        </button>
+      </div>
+    </section>
+
+    <!-- Zones Grid -->
+    <main id="zones-grid" class="zones-grid">
+      <!-- Loaded dynamically by app.js -->
+    </main>
+  </div>
+
+  <!-- Accounts Management Modal -->
+  <dialog id="account-modal">
+    <div class="modal-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Cloudflare Accounts
+      </h2>
+      <button class="btn-close" onclick="document.getElementById('account-modal').close()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button id="tab-add-account" class="tab-btn active" onclick="switchAccountTab('add')">+ Add Token</button>
+      <button id="tab-list-accounts" class="tab-btn" onclick="switchAccountTab('list')">Stored Accounts</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tab 1: Add Account -->
+      <form id="form-add-account" onsubmit="handleCreateAccount(event)">
+        <div class="form-group">
+          <label class="form-label">Account Label</label>
+          <input type="text" id="input-account-name" class="form-input" placeholder="e.g. Personal Pro, Client E-commerce" required>
+          <p class="form-help">A user-friendly label to identify which domains belong to this token.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cloudflare API Token</label>
+          <input type="password" id="input-api-token" class="form-input" placeholder="Create token with Zone:Read, DNS:Edit, Cache:Purge permissions" required>
+          <p class="form-help">The token is verified instantly via Cloudflare API (`/user/tokens/verify`) and stored securely with AES-256-GCM server-side encryption.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('account-modal').close()">Cancel</button>
+          <button type="submit" id="btn-submit-account" class="btn btn-primary">Save & Verify Token</button>
+        </div>
+      </form>
+
+      <!-- Tab 2: Stored Accounts List -->
+      <div id="section-list-accounts" style="display: none;">
+        <div id="accounts-table-container" class="data-table-container">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Add Zone Modal -->
+  <dialog id="add-zone-modal">
+    <div class="modal-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Add Domain to Cloudflare
+      </h2>
+      <button class="btn-close" onclick="document.getElementById('add-zone-modal').close()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-add-zone" onsubmit="handleCreateZone(event)">
+        <div class="form-group">
+          <label class="form-label">Domain Name</label>
+          <input type="text" id="input-domain-name" class="form-input" placeholder="e.g. example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Select Associated Cloudflare Account</label>
+          <select id="select-zone-account" class="select-input" style="width: 100%;" required>
+            <!-- Populated dynamically -->
+          </select>
+          <p class="form-help">The backend will automatically resolve the underlying Cloudflare Account ID (`cf_account_id`) from your decrypted token.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-zone-modal').close()">Cancel</button>
+          <button type="submit" id="btn-submit-zone" class="btn btn-primary">Create Domain</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Zone Detail Management Modal -->
+  <dialog id="zone-detail-modal" style="max-width: 840px;">
+    <div class="modal-header">
+      <div>
+        <h2 id="detail-zone-title" style="margin-bottom: 2px;">example.com</h2>
+        <span id="detail-zone-badge" class="account-badge">Personal</span>
+      </div>
+      <button class="btn-close" onclick="document.getElementById('zone-detail-modal').close()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button id="tab-zone-dns" class="tab-btn active" onclick="switchZoneDetailTab('dns')">DNS Records</button>
+      <button id="tab-zone-cache" class="tab-btn" onclick="switchZoneDetailTab('cache')">Edge Cache & SSL</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tab 1: DNS Management -->
+      <div id="section-zone-dns">
+        <form id="form-add-dns" onsubmit="handleCreateDnsRecord(event)" style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border); margin-bottom: 24px;">
+          <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-main);">+ Add New DNS Record</h4>
+          <div style="display: grid; grid-template-columns: 100px 1fr 1.5fr 80px 110px auto; gap: 10px; align-items: center;">
+            <select id="dns-type" class="select-input" style="width: 100%;">
+              <option value="A">A</option>
+              <option value="CNAME">CNAME</option>
+              <option value="TXT">TXT</option>
+              <option value="MX">MX</option>
+              <option value="NS">NS</option>
+            </select>
+            <input type="text" id="dns-name" class="form-input" placeholder="Name (@ or sub)" required>
+            <input type="text" id="dns-content" class="form-input" placeholder="IPv4, domain, or value" required>
+            <input type="number" id="dns-ttl" class="form-input" value="1" title="TTL (1 = Auto)" placeholder="TTL">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; color: var(--text-muted);">
+              <input type="checkbox" id="dns-proxied" checked>
+              Proxy
+            </label>
+            <button type="submit" id="btn-submit-dns" class="btn btn-primary btn-sm">Add</button>
+          </div>
+        </form>
+
+        <div id="dns-table-container" class="data-table-container">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Cache Purge & SSL/TLS -->
+      <div id="section-zone-cache" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          <!-- Cache Purge Card -->
+          <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
+            <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">Instant Edge Cache Purge</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+              Purge all cached resources across Cloudflare's global edge network immediately. Users will receive fresh assets from your origin on next request.
+            </p>
+            <button id="btn-purge-cache" class="btn btn-danger" style="width: 100%;" onclick="handlePurgeCache()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              </svg>
+              Purge Everything from Cache
+            </button>
+          </div>
+
+          <!-- SSL/TLS Card -->
+          <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
+            <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">SSL/TLS Encryption Mode</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+              Configure how Cloudflare encrypts traffic between visitors and your origin server.
+            </p>
+            <div id="ssl-options" class="ssl-grid">
+              <div class="ssl-option" onclick="handleUpdateSsl('off')" id="ssl-off">
+                <h4>Off</h4>
+                <p>No encryption</p>
+              </div>
+              <div class="ssl-option" onclick="handleUpdateSsl('flexible')" id="ssl-flexible">
+                <h4>Flexible</h4>
+                <p>Visitor to CF only</p>
+              </div>
+              <div class="ssl-option" onclick="handleUpdateSsl('full')" id="ssl-full">
+                <h4>Full</h4>
+                <p>Encrypts to Origin</p>
+              </div>
+              <div class="ssl-option" onclick="handleUpdateSsl('strict')" id="ssl-strict">
+                <h4>Strict</h4>
+                <p>Valid Origin Cert</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Stack -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
