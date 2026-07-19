@@ -58,6 +58,20 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("Server listening on {}", addr);
 
+    let proxy_notice = format!(
+        "\n================================================================================\n\
+         [COOLIFY / REVERSE PROXY DOMAIN ROUTING CHECK]\n\
+         Server is bound to 0.0.0.0:{port}\n\
+         If you attached a custom domain in Coolify and the page does not open (502 / timeout / blank):\n\
+         1. Coolify's Traefik proxy routes to container port 80 by default unless told otherwise.\n\
+         2. In Coolify -> Service Settings -> set 'Ports Exposes' to exactly: {port}\n\
+            OR in Coolify -> FQDN / Domains field -> append :{port} (e.g. https://domain.com:{port})\n\
+            OR add environment variable PORT=80 in Coolify so this backend listens on port 80.\n\
+         ================================================================================"
+    );
+    tracing::info!("{}", proxy_notice);
+    println!("{}", proxy_notice);
+
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind to port");

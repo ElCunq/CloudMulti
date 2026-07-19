@@ -1,0 +1,26 @@
+# Pre-built / Binary Dockerfile for Zero Server-Side Compilation
+# Use this Dockerfile if you compiled the binary locally or via external CI (`cargo build --release`)
+# and want Coolify to deploy in < 2 seconds without running cargo build on your server.
+
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy locally compiled binary from target/release/
+COPY target/release/cloudflare-dashboard-backend /app/cloudflare-dashboard-backend
+COPY migrations /app/migrations
+COPY public /app/public
+
+RUN mkdir -p /app/data
+
+ENV PORT=8080
+ENV DATABASE_URL="sqlite://data/cloudflare.db?mode=rwc"
+
+EXPOSE 8080
+EXPOSE 80
+
+CMD ["/app/cloudflare-dashboard-backend"]
