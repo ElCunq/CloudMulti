@@ -33,6 +33,9 @@ function setupEventListeners() {
   // Search & Filters
   document.getElementById('search-input').addEventListener('input', renderZonesGrid);
   document.getElementById('account-filter').addEventListener('change', renderZonesGrid);
+  
+  // Tunnel Search
+  document.getElementById('tunnel-search-input').addEventListener('input', renderTunnelsGrid);
 }
 
 // Data Fetching
@@ -53,6 +56,10 @@ async function refreshAllData() {
     populateAccountSelectors();
     renderZonesGrid();
     renderAccountsTable();
+
+    // Async background fetches for heavier stats
+    loadUnifiedAnalytics();
+    loadTunnelsData();
   } catch (err) {
     console.error('Data fetch error:', err);
     showToast(`Error syncing dashboard: ${err.message}`, 'error');
@@ -149,6 +156,33 @@ function renderZonesGrid() {
           <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">${nsText}</span>
         </div>
 
+        <div class="zone-quick-settings">
+          <div class="quick-setting-row">
+            <span style="font-weight: 500;">SSL Mode:</span>
+            <select class="select-input select-xs" id="ssl-select-${z.id}" onchange="changeCardSsl('${z.id}', this)" onclick="event.stopPropagation()">
+              <option value="loading" disabled selected>Loading...</option>
+              <option value="off">Off</option>
+              <option value="flexible">Flexible</option>
+              <option value="full">Full</option>
+              <option value="strict">Strict</option>
+            </select>
+          </div>
+          <div class="quick-setting-row">
+            <span style="font-weight: 500;">Under Attack:</span>
+            <label class="switch" onclick="event.stopPropagation()">
+              <input type="checkbox" id="waf-switch-${z.id}" onchange="changeCardUnderAttack('${z.id}', this)">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="quick-setting-row">
+            <span style="font-weight: 500;">Dev Mode:</span>
+            <label class="switch" onclick="event.stopPropagation()">
+              <input type="checkbox" id="dev-switch-${z.id}" onchange="changeCardDevMode('${z.id}', this)">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
         <div class="zone-card-actions">
           <button class="btn btn-primary btn-sm" onclick='openZoneDetail(${JSON.stringify(z)})'>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -160,6 +194,9 @@ function renderZonesGrid() {
       </div>
     `;
   }).join('');
+
+  // Fetch settings asynchronously for each zone
+  filtered.forEach(z => fetchZoneSettings(z.id));
 }
 
 // Account Tab Switching & CRUD
@@ -593,4 +630,199 @@ function showToast(message, type = 'success') {
     toast.style.transition = 'all 0.25s ease';
     setTimeout(() => toast.remove(), 250);
   }, 4500);
+}
+
+// On-demand settings loading for each card
+async function fetchZoneSettings(zoneId) {
+  try {
+    const resp = await fetch(`/api/zones/${zoneId}/settings`);
+    if (!resp.ok) throw new Error('Settings fetch failed');
+    const settings = await resp.json();
+
+    const sslSelect = document.getElementById(`ssl-select-${zoneId}`);
+    const wafSwitch = document.getElementById(`waf-switch-${zoneId}`);
+    const devSwitch = document.getElementById(`dev-switch-${zoneId}`);
+
+    if (sslSelect) sslSelect.value = settings.ssl_mode;
+    if (wafSwitch) wafSwitch.checked = (settings.security_level === 'under_attack');
+    if (devSwitch) devSwitch.checked = (settings.development_mode === 'on');
+  } catch (err) {
+    console.error(`Error loading settings for zone ${zoneId}:`, err);
+    const sslSelect = document.getElementById(`ssl-select-${zoneId}`);
+    if (sslSelect) {
+      sslSelect.innerHTML = '<option value="error" disabled selected>Offline</option>';
+    }
+  }
+}
+
+async function changeCardSsl(zoneId, selectElem) {
+  const originalVal = selectElem.value;
+  selectElem.disabled = true;
+  try {
+    const resp = await fetch(`/api/zones/${zoneId}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ssl_mode: selectElem.value })
+    });
+    if (!resp.ok) throw new Error('Failed to update SSL mode');
+    showToast('SSL/TLS Encryption Mode updated!', 'success');
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    selectElem.value = originalVal;
+  } finally {
+    selectElem.disabled = false;
+  }
+}
+
+async function changeCardUnderAttack(zoneId, checkboxElem) {
+  const originalState = checkboxElem.checked;
+  checkboxElem.disabled = true;
+  const securityLevel = originalState ? 'under_attack' : 'medium';
+  try {
+    const resp = await fetch(`/api/zones/${zoneId}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ security_level: securityLevel })
+    });
+    if (!resp.ok) throw new Error('Failed to update Security Level');
+    showToast(originalState ? 'WAF Under Attack Mode ACTIVATED! 🛡️' : 'WAF Under Attack Mode deactivated.', 'success');
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    checkboxElem.checked = !originalState;
+  } finally {
+    checkboxElem.disabled = false;
+  }
+}
+
+async function changeCardDevMode(zoneId, checkboxElem) {
+  const originalState = checkboxElem.checked;
+  checkboxElem.disabled = true;
+  const devMode = originalState ? 'on' : 'off';
+  try {
+    const resp = await fetch(`/api/zones/${zoneId}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ development_mode: devMode })
+    });
+    if (!resp.ok) throw new Error('Failed to update Development Mode');
+    showToast(originalState ? 'Development Mode enabled (bypass cache for 3h)' : 'Development Mode disabled.', 'success');
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    checkboxElem.checked = !originalState;
+  } finally {
+    checkboxElem.disabled = false;
+  }
+}
+
+// Unified GraphQL Analytics
+async function loadUnifiedAnalytics() {
+  const reqCard = document.getElementById('stat-requests');
+  const bwCard = document.getElementById('stat-bandwidth');
+  const visCard = document.getElementById('stat-visitors');
+
+  reqCard.textContent = '...';
+  bwCard.textContent = '...';
+  visCard.textContent = '...';
+
+  try {
+    const resp = await fetch('/api/analytics');
+    if (!resp.ok) throw new Error('Failed to load analytics');
+    const data = await resp.json();
+
+    reqCard.textContent = data.total_requests.toLocaleString();
+    visCard.textContent = data.unique_visitors.toLocaleString();
+    
+    // Format bandwidth dynamically
+    const bytes = data.total_bandwidth_bytes;
+    if (bytes >= 1e9) {
+      bwCard.textContent = `${(bytes / 1e9).toFixed(2)} GB`;
+    } else {
+      bwCard.textContent = `${(bytes / 1e6).toFixed(2)} MB`;
+    }
+  } catch (err) {
+    console.error('Analytics load error:', err);
+    reqCard.textContent = 'N/A';
+    bwCard.textContent = 'N/A';
+    visCard.textContent = 'N/A';
+  }
+}
+
+// Cloudflare Tunnels (Zero Trust)
+let tunnelsList = [];
+
+async function loadTunnelsData() {
+  const tunnelStat = document.getElementById('stat-tunnels');
+  tunnelStat.textContent = 'Loading...';
+
+  try {
+    const resp = await fetch('/api/tunnels');
+    if (!resp.ok) throw new Error('Failed to load tunnels');
+    tunnelsList = await resp.json();
+
+    const healthyCount = tunnelsList.filter(t => t.status === 'healthy').length;
+    tunnelStat.textContent = `${healthyCount} / ${tunnelsList.length}`;
+
+    renderTunnelsGrid();
+  } catch (err) {
+    console.error('Tunnels load error:', err);
+    tunnelStat.textContent = 'Error';
+    const tbody = document.getElementById('tunnels-table-body');
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--status-error); padding: 24px;">Failed to load tunnels: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+function renderTunnelsGrid() {
+  const tbody = document.getElementById('tunnels-table-body');
+  if (!tbody) return;
+
+  const searchQuery = document.getElementById('tunnel-search-input').value.toLowerCase().trim();
+  const filtered = tunnelsList.filter(t => 
+    t.name.toLowerCase().includes(searchQuery) ||
+    t.account_name.toLowerCase().includes(searchQuery)
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No tunnels found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(t => {
+    let statusClass = 'status-tunnel-inactive';
+    if (t.status === 'healthy') statusClass = 'status-tunnel-healthy';
+    else if (t.status === 'down') statusClass = 'status-tunnel-down';
+    else if (t.status === 'degraded') statusClass = 'status-tunnel-degraded';
+
+    return `
+      <tr>
+        <td><strong style="color: var(--text-main);">${t.name}</strong></td>
+        <td><span class="${statusClass}">${t.status}</span></td>
+        <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; word-break: break-all;">${t.account_id}</span></td>
+        <td><span class="account-badge">${t.account_name}</span></td>
+        <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; word-break: break-all;">${t.tunnel_id}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Main Tab Switcher
+function switchMainView(view) {
+  const zonesView = document.getElementById('zones-view-section');
+  const tunnelsView = document.getElementById('tunnels-view-section');
+  const zonesTab = document.getElementById('view-tab-zones');
+  const tunnelsTab = document.getElementById('view-tab-tunnels');
+
+  if (view === 'zones') {
+    zonesView.style.display = 'block';
+    tunnelsView.style.display = 'none';
+    zonesTab.classList.add('active');
+    tunnelsTab.classList.remove('active');
+  } else {
+    zonesView.style.display = 'none';
+    tunnelsView.style.display = 'block';
+    zonesTab.classList.remove('active');
+    tunnelsTab.classList.add('active');
+    loadTunnelsData();
+  }
 }

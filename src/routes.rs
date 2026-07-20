@@ -7,7 +7,7 @@ use tower_http::{
     services::{ServeDir, ServeFile},
     trace::TraceLayer,
 };
-use crate::handlers::{accounts, dns, quick_ops, zones};
+use crate::handlers::{accounts, dns, quick_ops, zones, tunnels, settings, analytics};
 use crate::state::AppState;
 
 pub fn build_router(state: AppState) -> Router {
@@ -32,6 +32,15 @@ pub fn build_router(state: AppState) -> Router {
                 .put(dns::update_dns_record)
                 .patch(dns::update_dns_record),
         )
+        // Zone settings
+        .route(
+            "/zones/:zone_id/settings",
+            get(settings::get_zone_settings).patch(settings::update_zone_settings),
+        )
+        // Cloudflare Tunnels (Zero Trust)
+        .route("/tunnels", get(tunnels::list_all_tunnels))
+        // GraphQL Analytics
+        .route("/analytics", get(analytics::get_unified_analytics))
         // Quick Operations
         .route("/zones/:zone_id/purge-cache", post(quick_ops::purge_cache))
         .route("/zones/:zone_id/ssl", patch(quick_ops::update_ssl));

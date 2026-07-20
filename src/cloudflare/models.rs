@@ -76,3 +76,65 @@ pub struct CfPurgeCachePayload {
 pub struct CfPurgeCacheResult {
     pub id: String,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct CfSetting {
+    pub id: String,
+    pub value: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct CfTunnel {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlResponse {
+    pub data: Option<CfGraphQlData>,
+    #[serde(default)]
+    pub errors: Vec<CfGraphQlError>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlError {
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlData {
+    pub viewer: Option<CfGraphQlViewer>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlViewer {
+    pub zones: Vec<CfGraphQlZone>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlZone {
+    #[serde(default, rename = "httpRequests1dGroups")]
+    pub http_requests_1d_groups: Vec<CfGraphQlGroup>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlGroup {
+    pub sum: Option<CfGraphQlSum>,
+    pub uniq: Option<CfGraphQlUniq>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlSum {
+    #[serde(default)]
+    pub requests: i64,
+    #[serde(default)]
+    pub bytes: i64,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CfGraphQlUniq {
+    #[serde(default)]
+    pub uniques: i64,
+}

@@ -37,6 +37,22 @@
       </div>
     </header>
 
+    <!-- Main View Switcher -->
+    <div class="view-tabs">
+      <button id="view-tab-zones" class="view-tab-btn active" onclick="switchMainView('zones')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Domains & DNS
+      </button>
+      <button id="view-tab-tunnels" class="view-tab-btn" onclick="switchMainView('tunnels')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+        Zero Trust Tunnels
+      </button>
+    </div>
+
     <!-- Stats Ribbon -->
     <section class="stats-ribbon">
       <div class="stat-card">
@@ -63,21 +79,53 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>System Status</span>
-          <h2 style="color: var(--status-active); font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
-            <span class="status-dot" style="background: var(--status-active); box-shadow: 0 0 10px var(--status-active);"></span>
-            API Online
-          </h2>
+          <span>Zero Trust Tunnels</span>
+          <h2 id="stat-tunnels">0 / 0</h2>
         </div>
-        <div class="stat-icon" style="color: var(--status-active);">
+        <div class="stat-icon" style="color: #a855f7;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Today's Requests</span>
+          <h2 id="stat-requests">0</h2>
+        </div>
+        <div class="stat-icon" style="color: #10b981;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Today's Bandwidth</span>
+          <h2 id="stat-bandwidth">0 MB</h2>
+        </div>
+        <div class="stat-icon" style="color: #3b82f6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Unique Visitors</span>
+          <h2 id="stat-visitors">0</h2>
+        </div>
+        <div class="stat-icon" style="color: #f59e0b;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
         </div>
       </div>
     </section>
 
-    <!-- Controls Header -->
+    <!-- Domains Section Container -->
+    <div id="zones-view-section">
+      <!-- Controls Header -->
     <section class="controls-header">
       <div class="search-filter-group">
         <div class="search-box">
@@ -205,8 +253,47 @@
             </div>
           </div>
         </div>
-      </div>
     </section>
+    </div>
+
+    <!-- Tunnels Section -->
+    <div id="tunnels-view-section" style="display: none;">
+      <section class="controls-header">
+        <div class="search-filter-group">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="tunnel-search-input" class="search-input" placeholder="Search tunnels by name or account...">
+          </div>
+        </div>
+        <div>
+          <button id="btn-refresh-tunnels" class="btn btn-secondary btn-sm" onclick="loadTunnelsData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Refresh Tunnels
+          </button>
+        </div>
+      </section>
+
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tunnel Name</th>
+              <th>Status</th>
+              <th>Cloudflare Account ID</th>
+              <th>Account Tag</th>
+              <th>Tunnel ID</th>
+            </tr>
+          </thead>
+          <tbody id="tunnels-table-body">
+            <!-- Loaded dynamically by app.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- Accounts Management Modal -->

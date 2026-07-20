@@ -242,4 +242,109 @@ impl CloudflareClient {
 
         Self::check_response(resp)
     }
+
+    pub async fn get_setting(
+        &self,
+        token: &str,
+        zone_id: &str,
+        setting_name: &str,
+    ) -> Result<CfSetting, AppError> {
+        let url = format!("{}/zones/{}/settings/{}", CF_API_BASE, zone_id, setting_name);
+        let resp = self
+            .http
+            .get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .json::<CfResponse<CfSetting>>()
+            .await?;
+
+        Self::check_response(resp)
+    }
+
+    pub async fn update_setting(
+        &self,
+        token: &str,
+        zone_id: &str,
+        setting_name: &str,
+        value: &str,
+    ) -> Result<CfSetting, AppError> {
+        let url = format!("{}/zones/{}/settings/{}", CF_API_BASE, zone_id, setting_name);
+        let payload = serde_json::json!({ "value": value });
+        let resp = self
+            .http
+            .patch(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?
+            .json::<CfResponse<CfSetting>>()
+            .await?;
+
+        Self::check_response(resp)
+    }
+
+    pub async fn list_tunnels(
+        &self,
+        token: &str,
+        cf_account_id: &str,
+    ) -> Result<Vec<CfTunnel>, AppError> {
+        let url = format!("{}/accounts/{}/cfd_tunnel", CF_API_BASE, cf_account_id);
+        let resp = self
+            .http
+            .get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .json::<CfResponse<Vec<CfTunnel>>>()
+            .await?;
+
+        Self::check_response(resp)
+    }
+
+    pub async fn get_graphql_analytics(
+        &self,
+        token: &str,
+        zone_id: &str,
+        date_geq: &str,
+    ) -> Result<CfGraphQlResponse, AppError> {
+        let url = format!("{}/graphql", CF_API_BASE);
+        let query = r#"
+            query GetZoneAnalytics($zoneTag: String!, $dateGeq: Date!) {
+                viewer {
+                    zones(filter: { zoneTag: $zoneTag }) {
+                        httpRequests1dGroups(limit: 7, filter: { date_geq: $dateGeq }) {
+                            sum {
+                                requests
+                                bytes
+                            }
+                            uniq {
+                                uniques
+                            }
+                        }
+                    }
+                }
+            }
+        "#;
+
+        let payload = serde_json::json!({
+            "query": query,
+            "variables": {
+                "zoneTag": zone_id,
+                "dateGeq": date_geq,
+            }
+        });
+
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?
+            .json::<CfGraphQlResponse>()
+            .await?;
+
+        Ok(resp)
+    }
 }
