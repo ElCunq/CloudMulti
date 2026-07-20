@@ -48,7 +48,9 @@ RUN mkdir -p /app/data
 COPY public /app/public
 
 ENV PORT=8080
-ENV DATABASE_URL="sqlite://data/cloudflare.db?mode=rwc"
+ENV DATABASE_URL="sqlite:///app/data/cloudflare.db?mode=rwc"
+
+VOLUME /app/data
 
 EXPOSE 8080
 EXPOSE 80

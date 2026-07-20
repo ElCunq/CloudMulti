@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#f43f5e" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <!-- Glowing background cloud -->
+  <path d="M48 44H20a14 14 0 0 1-2-27.86A11 11 0 0 1 32 7a12 12 0 0 1 12 9.5 11 11 0 0 1 6 20.35A11 11 0 0 1 48 44z" fill="url(#glowGrad)"/>
+  <!-- Primary Cloud Outline -->
+  <path d="M48 44H20a14 14 0 0 1-2-27.86A11 11 0 0 1 32 7a12 12 0 0 1 12 9.5 11 11 0 0 1 6 20.35A11 11 0 0 1 48 44z" stroke="url(#brandGrad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Layered nodes representing multiple accounts -->
+  <circle cx="24" cy="30" r="3" fill="#ffffff" />
+  <circle cx="40" cy="30" r="3" fill="#ffffff" />
+  <path d="M24 30h16" stroke="#ffffff" stroke-width="2" stroke-dasharray="3 3" />
+  <!-- Central server hub icon representation inside -->
+  <rect x="27" y="24" width="10" height="12" rx="2" fill="url(#brandGrad)" stroke="#ffffff" stroke-width="2"/>
+  <line x1="30" y1="28" x2="34" y2="28" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="30" y1="32" x2="34" y2="32" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

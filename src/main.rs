@@ -33,7 +33,7 @@ async fn main() {
     };
 
     let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite://data/cloudflare.db?mode=rwc".to_string());
+        .unwrap_or_else(|_| "sqlite:///app/data/cloudflare.db?mode=rwc".to_string());
     tracing::info!("Connecting to SQLite database at {}...", database_url);
 
     let pool = match init_db(&database_url).await {

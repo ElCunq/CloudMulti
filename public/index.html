@@ -5,19 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Self-Hosted Multi-Account Cloudflare Dashboard</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
   <div class="app-container">
     <!-- Navbar -->
     <header class="navbar">
       <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-          </svg>
+        <div class="brand-icon" style="background: transparent; border-radius: 0; width: 42px; height: 42px;">
+          <img src="favicon.svg" alt="CloudMulti Logo" style="width: 100%; height: 100%;">
         </div>
         <div class="brand-text">
-          <h1>Cloudflare Dashboard</h1>
+          <h1>CloudMulti</h1>
           <p>Unified Multi-Account Edge Management</p>
         </div>
       </div>
@@ -185,22 +184,36 @@
         <div id="section-zone-dns">
           <form id="form-add-dns" onsubmit="handleCreateDnsRecord(event)" style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border); margin-bottom: 24px;">
             <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-main);">+ Add New DNS Record</h4>
-            <div style="display: grid; grid-template-columns: 100px 1fr 1.5fr 80px 110px auto; gap: 10px; align-items: center;">
-              <select id="dns-type" class="select-input" style="width: 100%;">
-                <option value="A">A</option>
-                <option value="CNAME">CNAME</option>
-                <option value="TXT">TXT</option>
-                <option value="MX">MX</option>
-                <option value="NS">NS</option>
-              </select>
-              <input type="text" id="dns-name" class="form-input" placeholder="Name (@ or sub)" required>
-              <input type="text" id="dns-content" class="form-input" placeholder="IPv4, domain, or value" required>
-              <input type="number" id="dns-ttl" class="form-input" value="1" title="TTL (1 = Auto)" placeholder="TTL">
-              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; color: var(--text-muted);">
-                <input type="checkbox" id="dns-proxied" checked>
-                Proxy
-              </label>
-              <button type="submit" id="btn-submit-dns" class="btn btn-primary btn-sm">Add</button>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: grid; grid-template-columns: 110px 1fr 1.5fr 85px auto; gap: 10px; align-items: center;">
+                <select id="dns-type" class="select-input" style="width: 100%; padding-left: 12px;" onchange="onAddTypeChange()">
+                  <option value="A">A</option>
+                  <option value="CNAME">CNAME</option>
+                  <option value="TXT">TXT</option>
+                  <option value="MX">MX</option>
+                  <option value="NS">NS</option>
+                </select>
+                <input type="text" id="dns-name" class="form-input" placeholder="Name (@ or sub)" required style="padding-left: 12px;">
+                <input type="text" id="dns-content" class="form-input" placeholder="IPv4 address (e.g. 1.2.3.4)" required style="padding-left: 12px;">
+                <input type="number" id="dns-ttl" class="form-input" value="1" title="TTL (1 = Auto)" placeholder="TTL" style="padding-left: 12px;">
+                <button type="submit" id="btn-submit-dns" class="btn btn-primary btn-sm" style="padding: 10px 20px;">Add</button>
+              </div>
+              <div style="display: flex; gap: 20px; align-items: center; padding-left: 4px; flex-wrap: wrap;">
+                <!-- Proxy switch (visible for A, CNAME) -->
+                <div id="dns-proxy-container" style="display: flex; align-items: center; gap: 8px;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-muted); font-weight: 500;">
+                    <input type="checkbox" id="dns-proxied" checked>
+                    Proxy traffic through Cloudflare
+                  </label>
+                </div>
+                <!-- Priority input (visible for MX) -->
+                <div id="dns-priority-container" style="display: none; align-items: center; gap: 8px;">
+                  <label style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; font-weight: 500;">
+                    Priority:
+                    <input type="number" id="dns-priority" class="form-input" value="10" min="0" max="65535" style="width: 80px; padding: 6px 10px;">
+                  </label>
+                </div>
+              </div>
             </div>
           </form>
 
@@ -387,7 +400,7 @@
         <input type="hidden" id="edit-dns-id">
         <div class="form-group">
           <label class="form-label">Record Type</label>
-          <select id="edit-dns-type" class="select-input" style="width: 100%;" required>
+          <select id="edit-dns-type" class="select-input" style="width: 100%;" required onchange="onEditTypeChange()">
             <option value="A">A</option>
             <option value="CNAME">CNAME</option>
             <option value="TXT">TXT</option>
@@ -397,23 +410,28 @@
         </div>
         <div class="form-group">
           <label class="form-label">Name (@ or subdomain)</label>
-          <input type="text" id="edit-dns-name" class="form-input" required>
+          <input type="text" id="edit-dns-name" class="form-input" required style="padding-left: 12px;">
         </div>
         <div class="form-group">
-          <label class="form-label">Content (IPv4, target domain, or TXT value)</label>
-          <input type="text" id="edit-dns-content" class="form-input" required>
+          <label class="form-label" id="edit-dns-content-label">Content (IPv4, target domain, or TXT value)</label>
+          <input type="text" id="edit-dns-content" class="form-input" required style="padding-left: 12px;">
         </div>
         <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div>
             <label class="form-label">TTL (1 = Auto)</label>
-            <input type="number" id="edit-dns-ttl" class="form-input" value="1" required>
+            <input type="number" id="edit-dns-ttl" class="form-input" value="1" required style="padding-left: 12px;">
           </div>
-          <div style="display: flex; align-items: center; padding-top: 24px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-weight: 500;">
-              <input type="checkbox" id="edit-dns-proxied">
-              Proxy through Cloudflare
-            </label>
+          <!-- Priority input for MX -->
+          <div id="edit-dns-priority-container" style="display: none;">
+            <label class="form-label">Priority</label>
+            <input type="number" id="edit-dns-priority" class="form-input" value="10" min="0" max="65535" style="padding-left: 12px;">
           </div>
+        </div>
+        <div class="form-group" id="edit-dns-proxy-container" style="display: flex; align-items: center; padding-top: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-weight: 500;">
+            <input type="checkbox" id="edit-dns-proxied">
+            Proxy traffic through Cloudflare
+          </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-dns-modal').close()">Cancel</button>

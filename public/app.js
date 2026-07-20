@@ -394,6 +394,16 @@ function closeInlineZonePanel() {
   activeZone = null;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // DNS CRUD
 async function loadDnsRecords() {
   const container = document.getElementById('dns-table-container');
@@ -426,22 +436,38 @@ async function loadDnsRecords() {
         </thead>
         <tbody>
           ${records.map(r => {
-            const safeName = r.name.replace(/'/g, "\\'");
-            const safeContent = r.content.replace(/'/g, "\\'");
+            const hasProxy = r.type === 'A' || r.type === 'CNAME';
+            const isMx = r.type === 'MX';
+            const displayProxy = hasProxy 
+              ? `<span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}</span>`
+              : `<span style="color: var(--text-dim); font-size: 0.8rem;">—</span>`;
+
+            const priorityBadge = isMx && r.priority !== undefined ? ` <span class="code-pill" style="background: hsla(210, 100%, 56%, 0.15); color: var(--accent-secondary); font-size: 0.7rem; font-weight: normal; margin-left: 6px;">Priority: ${r.priority}</span>` : '';
+
             return `
               <tr>
                 <td><span class="code-pill">${r.type}</span></td>
-                <td><strong style="color: var(--text-main);">${r.name}</strong></td>
-                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${r.content}</span></td>
+                <td><strong style="color: var(--text-main);">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
+                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${escapeHtml(r.content)}</span></td>
                 <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
-                <td>
-                  <span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">
-                    ${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}
-                  </span>
-                </td>
+                <td>${displayProxy}</td>
                 <td style="text-align: right; white-space: nowrap;">
-                  <button class="btn btn-secondary btn-sm" style="margin-right: 6px;" onclick="openEditDnsModal('${r.id}', '${r.type}', '${safeName}', '${safeContent}', ${r.ttl}, ${r.proxied})">Düzenle</button>
-                  <button class="btn btn-danger btn-sm" onclick="handleDeleteDnsRecord('${r.id}', '${safeName}')">Sil</button>
+                  <button class="btn btn-secondary btn-sm edit-dns-btn"
+                          data-id="${r.id}"
+                          data-type="${r.type}"
+                          data-name="${escapeHtml(r.name)}"
+                          data-content="${escapeHtml(r.content)}"
+                          data-ttl="${r.ttl}"
+                          data-proxied="${r.proxied}"
+                          data-priority="${r.priority || ''}"
+                          style="margin-right: 6px;">
+                    Edit
+                  </button>
+                  <button class="btn btn-danger btn-sm delete-dns-btn"
+                          data-id="${r.id}"
+                          data-name="${escapeHtml(r.name)}">
+                    Sil
+                  </button>
                 </td>
               </tr>
             `;
@@ -449,18 +475,97 @@ async function loadDnsRecords() {
         </tbody>
       </table>
     `;
+
+    // Bind Edit Event Listeners
+    container.querySelectorAll('.edit-dns-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const type = btn.dataset.type;
+        const name = btn.dataset.name;
+        const content = btn.dataset.content;
+        const ttl = btn.dataset.ttl;
+        const proxied = btn.dataset.proxied === 'true';
+        const priority = btn.dataset.priority;
+        openEditDnsModal(id, type, name, content, ttl, proxied, priority);
+      });
+    });
+
+    // Bind Delete Event Listeners
+    container.querySelectorAll('.delete-dns-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleDeleteDnsRecord(btn.dataset.id, btn.dataset.name);
+      });
+    });
+
   } catch (err) {
     container.innerHTML = `<div style="padding: 24px; color: var(--status-error);">Error loading DNS: ${err.message}</div>`;
   }
 }
 
-function openEditDnsModal(recordId, type, name, content, ttl, proxied) {
+// Add Form Type change listener
+function onAddTypeChange() {
+  const type = document.getElementById('dns-type').value;
+  const contentInput = document.getElementById('dns-content');
+  const proxyContainer = document.getElementById('dns-proxy-container');
+  const priorityContainer = document.getElementById('dns-priority-container');
+
+  proxyContainer.style.display = 'none';
+  priorityContainer.style.display = 'none';
+
+  if (type === 'A') {
+    contentInput.placeholder = 'IPv4 address (e.g. 1.2.3.4)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'CNAME') {
+    contentInput.placeholder = 'Target domain (e.g. target.com)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'TXT') {
+    contentInput.placeholder = 'TXT content (e.g. v=spf1...)';
+  } else if (type === 'MX') {
+    contentInput.placeholder = 'Mail server (e.g. mail.domain.com)';
+    priorityContainer.style.display = 'flex';
+  } else if (type === 'NS') {
+    contentInput.placeholder = 'Nameserver (e.g. ns1.domain.com)';
+  }
+}
+
+// Edit Form Type change listener
+function onEditTypeChange() {
+  const type = document.getElementById('edit-dns-type').value;
+  const contentLabel = document.getElementById('edit-dns-content-label');
+  const proxyContainer = document.getElementById('edit-dns-proxy-container');
+  const priorityContainer = document.getElementById('edit-dns-priority-container');
+
+  proxyContainer.style.display = 'none';
+  priorityContainer.style.display = 'none';
+
+  if (type === 'A') {
+    contentLabel.textContent = 'IPv4 address (e.g. 1.2.3.4)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'CNAME') {
+    contentLabel.textContent = 'Target domain (e.g. target.com)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'TXT') {
+    contentLabel.textContent = 'TXT content (e.g. v=spf1...)';
+  } else if (type === 'MX') {
+    contentLabel.textContent = 'Mail server (e.g. mail.domain.com)';
+    priorityContainer.style.display = 'block';
+  } else if (type === 'NS') {
+    contentLabel.textContent = 'Nameserver (e.g. ns1.domain.com)';
+  }
+}
+
+function openEditDnsModal(recordId, type, name, content, ttl, proxied, priority) {
   document.getElementById('edit-dns-id').value = recordId;
   document.getElementById('edit-dns-type').value = type;
   document.getElementById('edit-dns-name').value = name;
   document.getElementById('edit-dns-content').value = content;
   document.getElementById('edit-dns-ttl').value = ttl;
   document.getElementById('edit-dns-proxied').checked = proxied;
+  document.getElementById('edit-dns-priority').value = priority || '10';
+
+  // Toggle visible form fields
+  onEditTypeChange();
+
   document.getElementById('edit-dns-modal').showModal();
 }
 
@@ -473,21 +578,28 @@ async function handleUpdateDnsRecord(event) {
   const contentVal = document.getElementById('edit-dns-content').value.trim();
   const ttlVal = parseInt(document.getElementById('edit-dns-ttl').value || '1', 10);
   const proxiedVal = document.getElementById('edit-dns-proxied').checked;
+  const priorityVal = typeVal === 'MX' ? parseInt(document.getElementById('edit-dns-priority').value || '10', 10) : null;
 
   btn.disabled = true;
   btn.textContent = 'Saving...';
+
+  const payload = {
+    type: typeVal,
+    name: nameVal,
+    content: contentVal,
+    ttl: ttlVal,
+    proxied: (typeVal === 'A' || typeVal === 'CNAME') ? proxiedVal : false
+  };
+
+  if (priorityVal !== null) {
+    payload.priority = priorityVal;
+  }
 
   try {
     const resp = await fetch(`/api/zones/${activeZone.id}/dns/${recordId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: typeVal,
-        name: nameVal,
-        content: contentVal,
-        ttl: ttlVal,
-        proxied: proxiedVal
-      })
+      body: JSON.stringify(payload)
     });
 
     const data = await resp.json();
@@ -512,21 +624,28 @@ async function handleCreateDnsRecord(event) {
   const contentVal = document.getElementById('dns-content').value.trim();
   const ttlVal = parseInt(document.getElementById('dns-ttl').value || '1', 10);
   const proxiedVal = document.getElementById('dns-proxied').checked;
+  const priorityVal = typeVal === 'MX' ? parseInt(document.getElementById('dns-priority').value || '10', 10) : null;
 
   btn.disabled = true;
   btn.textContent = 'Adding...';
+
+  const payload = {
+    type: typeVal,
+    name: nameVal,
+    content: contentVal,
+    ttl: ttlVal,
+    proxied: (typeVal === 'A' || typeVal === 'CNAME') ? proxiedVal : false
+  };
+
+  if (priorityVal !== null) {
+    payload.priority = priorityVal;
+  }
 
   try {
     const resp = await fetch(`/api/zones/${activeZone.id}/dns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: typeVal,
-        name: nameVal,
-        content: contentVal,
-        ttl: ttlVal,
-        proxied: proxiedVal
-      })
+      body: JSON.stringify(payload)
     });
 
     const data = await resp.json();
