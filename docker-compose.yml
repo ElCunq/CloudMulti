@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  cloudmulti:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cloudmulti:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=sqlite:///app/data/cloudflare.db?mode=rwc
+      - RUST_LOG=info,cloudflare_dashboard_backend=debug
+    volumes:
+      - cloudmulti-data:/app/data
+    restart: always
+
+volumes:
+  cloudmulti-data:
+    driver: local
