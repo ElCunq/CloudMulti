@@ -22,8 +22,11 @@ pub async fn create_dns_record(
     Path(zone_id): Path<String>,
     Json(payload): Json<CreateDnsRecordRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    if payload.name.trim().is_empty() || payload.content.trim().is_empty() {
-        return Err(AppError::BadRequest("DNS record name and content cannot be empty".to_string()));
+    if payload.name.trim().is_empty() {
+        return Err(AppError::BadRequest("DNS record name cannot be empty".to_string()));
+    }
+    if payload.data.is_none() && payload.content.trim().is_empty() {
+        return Err(AppError::BadRequest("DNS record content cannot be empty".to_string()));
     }
 
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
@@ -47,8 +50,11 @@ pub async fn update_dns_record(
     Path((zone_id, record_id)): Path<(String, String)>,
     Json(payload): Json<CreateDnsRecordRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    if payload.name.trim().is_empty() || payload.content.trim().is_empty() {
-        return Err(AppError::BadRequest("DNS record name and content cannot be empty".to_string()));
+    if payload.name.trim().is_empty() {
+        return Err(AppError::BadRequest("DNS record name cannot be empty".to_string()));
+    }
+    if payload.data.is_none() && payload.content.trim().is_empty() {
+        return Err(AppError::BadRequest("DNS record content cannot be empty".to_string()));
     }
 
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;

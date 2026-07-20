@@ -34,6 +34,7 @@ pub struct ZoneSummaryResponse {
 pub struct CreateDnsRecordRequest {
     pub r#type: String,
     pub name: String,
+    #[serde(default = "default_content")]
     pub content: String,
     #[serde(default = "default_ttl")]
     pub ttl: i32,
@@ -41,6 +42,12 @@ pub struct CreateDnsRecordRequest {
     pub proxied: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+}
+
+fn default_content() -> String {
+    String::new()
 }
 
 fn default_ttl() -> i32 {

@@ -436,7 +436,7 @@ async function loadDnsRecords() {
         </thead>
         <tbody>
           ${records.map(r => {
-            const hasProxy = r.type === 'A' || r.type === 'CNAME';
+            const hasProxy = r.type === 'A' || r.type === 'AAAA' || r.type === 'CNAME';
             const isMx = r.type === 'MX';
             const displayProxy = hasProxy 
               ? `<span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}</span>`
@@ -444,11 +444,19 @@ async function loadDnsRecords() {
 
             const priorityBadge = isMx && r.priority !== undefined ? ` <span class="code-pill" style="background: hsla(210, 100%, 56%, 0.15); color: var(--accent-secondary); font-size: 0.7rem; font-weight: normal; margin-left: 6px;">Priority: ${r.priority}</span>` : '';
 
+            // Handle display content for advanced records
+            let displayContent = r.content;
+            if (r.type === 'SRV' && r.data) {
+              displayContent = `Priority: ${r.data.priority}, Weight: ${r.data.weight}, Port: ${r.data.port}, Target: ${r.data.target}`;
+            } else if (r.type === 'CAA' && r.data) {
+              displayContent = `${r.data.flags} ${r.data.tag} "${r.data.value}"`;
+            }
+
             return `
               <tr>
                 <td><span class="code-pill">${r.type}</span></td>
                 <td><strong style="color: var(--text-main);">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
-                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${escapeHtml(r.content)}</span></td>
+                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${escapeHtml(displayContent)}</span></td>
                 <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
                 <td>${displayProxy}</td>
                 <td style="text-align: right; white-space: nowrap;">
@@ -460,6 +468,7 @@ async function loadDnsRecords() {
                           data-ttl="${r.ttl}"
                           data-proxied="${r.proxied}"
                           data-priority="${r.priority || ''}"
+                          data-data="${r.data ? escapeHtml(JSON.stringify(r.data)) : ''}"
                           style="margin-right: 6px;">
                     Edit
                   </button>
@@ -486,7 +495,8 @@ async function loadDnsRecords() {
         const ttl = btn.dataset.ttl;
         const proxied = btn.dataset.proxied === 'true';
         const priority = btn.dataset.priority;
-        openEditDnsModal(id, type, name, content, ttl, proxied, priority);
+        const rawData = btn.dataset.data;
+        openEditDnsModal(id, type, name, content, ttl, proxied, priority, rawData);
       });
     });
 
@@ -497,23 +507,58 @@ async function loadDnsRecords() {
       });
     });
 
+    // Apply any current search filter
+    filterDnsTable();
+
   } catch (err) {
     container.innerHTML = `<div style="padding: 24px; color: var(--status-error);">Error loading DNS: ${err.message}</div>`;
   }
 }
 
+// Dynamic real-time DNS table filtering
+function filterDnsTable() {
+  const queryElem = document.getElementById('dns-search-input');
+  if (!queryElem) return;
+  const query = queryElem.value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#dns-table-container tbody tr');
+
+  rows.forEach(row => {
+    if (row.cells.length === 1 && row.cells[0].colSpan > 1) return;
+
+    const type = row.cells[0].textContent.toLowerCase();
+    const name = row.cells[1].textContent.toLowerCase();
+    const content = row.cells[2].textContent.toLowerCase();
+
+    if (type.includes(query) || name.includes(query) || content.includes(query)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
 // Add Form Type change listener
 function onAddTypeChange() {
   const type = document.getElementById('dns-type').value;
+  const nameInput = document.getElementById('dns-name');
   const contentInput = document.getElementById('dns-content');
   const proxyContainer = document.getElementById('dns-proxy-container');
   const priorityContainer = document.getElementById('dns-priority-container');
+  const srvContainer = document.getElementById('dns-srv-container');
+  const caaContainer = document.getElementById('dns-caa-container');
 
   proxyContainer.style.display = 'none';
   priorityContainer.style.display = 'none';
+  srvContainer.style.display = 'none';
+  caaContainer.style.display = 'none';
+  contentInput.style.display = 'block';
+  contentInput.required = true;
 
   if (type === 'A') {
     contentInput.placeholder = 'IPv4 address (e.g. 1.2.3.4)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'AAAA') {
+    contentInput.placeholder = 'IPv6 address (e.g. 2001:db8::1)';
     proxyContainer.style.display = 'flex';
   } else if (type === 'CNAME') {
     contentInput.placeholder = 'Target domain (e.g. target.com)';
@@ -525,36 +570,62 @@ function onAddTypeChange() {
     priorityContainer.style.display = 'flex';
   } else if (type === 'NS') {
     contentInput.placeholder = 'Nameserver (e.g. ns1.domain.com)';
+  } else if (type === 'SRV') {
+    contentInput.style.display = 'none';
+    contentInput.required = false;
+    srvContainer.style.display = 'flex';
+  } else if (type === 'CAA') {
+    contentInput.style.display = 'none';
+    contentInput.required = false;
+    caaContainer.style.display = 'flex';
   }
 }
 
 // Edit Form Type change listener
 function onEditTypeChange() {
   const type = document.getElementById('edit-dns-type').value;
-  const contentLabel = document.getElementById('edit-dns-content-label');
+  const contentGroup = document.getElementById('edit-dns-content-group');
+  const contentInput = document.getElementById('edit-dns-content');
   const proxyContainer = document.getElementById('edit-dns-proxy-container');
   const priorityContainer = document.getElementById('edit-dns-priority-container');
+  const srvContainer = document.getElementById('edit-dns-srv-container');
+  const caaContainer = document.getElementById('edit-dns-caa-container');
 
   proxyContainer.style.display = 'none';
   priorityContainer.style.display = 'none';
+  srvContainer.style.display = 'none';
+  caaContainer.style.display = 'none';
+  contentGroup.style.display = 'block';
+  contentInput.required = true;
 
   if (type === 'A') {
-    contentLabel.textContent = 'IPv4 address (e.g. 1.2.3.4)';
+    document.getElementById('edit-dns-content-label').textContent = 'IPv4 address (e.g. 1.2.3.4)';
+    proxyContainer.style.display = 'flex';
+  } else if (type === 'AAAA') {
+    document.getElementById('edit-dns-content-label').textContent = 'IPv6 address (e.g. 2001:db8::1)';
     proxyContainer.style.display = 'flex';
   } else if (type === 'CNAME') {
-    contentLabel.textContent = 'Target domain (e.g. target.com)';
+    document.getElementById('edit-dns-content-label').textContent = 'Target domain (e.g. target.com)';
     proxyContainer.style.display = 'flex';
   } else if (type === 'TXT') {
-    contentLabel.textContent = 'TXT content (e.g. v=spf1...)';
+    document.getElementById('edit-dns-content-label').textContent = 'TXT content (e.g. v=spf1...)';
   } else if (type === 'MX') {
-    contentLabel.textContent = 'Mail server (e.g. mail.domain.com)';
+    document.getElementById('edit-dns-content-label').textContent = 'Mail server (e.g. mail.domain.com)';
     priorityContainer.style.display = 'block';
   } else if (type === 'NS') {
-    contentLabel.textContent = 'Nameserver (e.g. ns1.domain.com)';
+    document.getElementById('edit-dns-content-label').textContent = 'Nameserver (e.g. ns1.domain.com)';
+  } else if (type === 'SRV') {
+    contentGroup.style.display = 'none';
+    contentInput.required = false;
+    srvContainer.style.display = 'flex';
+  } else if (type === 'CAA') {
+    contentGroup.style.display = 'none';
+    contentInput.required = false;
+    caaContainer.style.display = 'flex';
   }
 }
 
-function openEditDnsModal(recordId, type, name, content, ttl, proxied, priority) {
+function openEditDnsModal(recordId, type, name, content, ttl, proxied, priority, rawDataStr) {
   document.getElementById('edit-dns-id').value = recordId;
   document.getElementById('edit-dns-type').value = type;
   document.getElementById('edit-dns-name').value = name;
@@ -562,6 +633,23 @@ function openEditDnsModal(recordId, type, name, content, ttl, proxied, priority)
   document.getElementById('edit-dns-ttl').value = ttl;
   document.getElementById('edit-dns-proxied').checked = proxied;
   document.getElementById('edit-dns-priority').value = priority || '10';
+
+  // Parse data for SRV / CAA
+  const rawData = rawDataStr ? JSON.parse(rawDataStr) : null;
+
+  if (type === 'SRV' && rawData) {
+    document.getElementById('edit-dns-srv-service').value = rawData.service || '';
+    document.getElementById('edit-dns-srv-proto').value = rawData.proto || '_tcp';
+    document.getElementById('edit-dns-srv-priority').value = rawData.priority || '10';
+    document.getElementById('edit-dns-srv-weight').value = rawData.weight || '5';
+    document.getElementById('edit-dns-srv-port').value = rawData.port || '5060';
+    document.getElementById('edit-dns-srv-target').value = rawData.target || '';
+    document.getElementById('edit-dns-name').value = rawData.name || name;
+  } else if (type === 'CAA' && rawData) {
+    document.getElementById('edit-dns-caa-flags').value = rawData.flags || '0';
+    document.getElementById('edit-dns-caa-tag').value = rawData.tag || 'issue';
+    document.getElementById('edit-dns-caa-value').value = rawData.value || '';
+  }
 
   // Toggle visible form fields
   onEditTypeChange();
@@ -586,13 +674,43 @@ async function handleUpdateDnsRecord(event) {
   const payload = {
     type: typeVal,
     name: nameVal,
-    content: contentVal,
     ttl: ttlVal,
-    proxied: (typeVal === 'A' || typeVal === 'CNAME') ? proxiedVal : false
+    proxied: (typeVal === 'A' || typeVal === 'AAAA' || typeVal === 'CNAME') ? proxiedVal : false
   };
 
-  if (priorityVal !== null) {
+  if (typeVal === 'SRV') {
+    const service = document.getElementById('edit-dns-srv-service').value.trim();
+    const proto = document.getElementById('edit-dns-srv-proto').value;
+    const srvPriority = parseInt(document.getElementById('edit-dns-srv-priority').value || '10', 10);
+    const weight = parseInt(document.getElementById('edit-dns-srv-weight').value || '5', 10);
+    const port = parseInt(document.getElementById('edit-dns-srv-port').value || '5060', 10);
+    const target = document.getElementById('edit-dns-srv-target').value.trim();
+
+    payload.name = `${service}.${proto}.${nameVal}`;
+    payload.data = {
+      service,
+      proto,
+      name: nameVal,
+      priority: srvPriority,
+      weight,
+      port,
+      target
+    };
+  } else if (typeVal === 'CAA') {
+    const flags = parseInt(document.getElementById('edit-dns-caa-flags').value || '0', 10);
+    const tag = document.getElementById('edit-dns-caa-tag').value;
+    const value = document.getElementById('edit-dns-caa-value').value.trim();
+
+    payload.data = {
+      flags,
+      tag,
+      value
+    };
+  } else if (typeVal === 'MX') {
+    payload.content = contentVal;
     payload.priority = priorityVal;
+  } else {
+    payload.content = contentVal;
   }
 
   try {
@@ -632,13 +750,43 @@ async function handleCreateDnsRecord(event) {
   const payload = {
     type: typeVal,
     name: nameVal,
-    content: contentVal,
     ttl: ttlVal,
-    proxied: (typeVal === 'A' || typeVal === 'CNAME') ? proxiedVal : false
+    proxied: (typeVal === 'A' || typeVal === 'AAAA' || typeVal === 'CNAME') ? proxiedVal : false
   };
 
-  if (priorityVal !== null) {
+  if (typeVal === 'SRV') {
+    const service = document.getElementById('dns-srv-service').value.trim();
+    const proto = document.getElementById('dns-srv-proto').value;
+    const srvPriority = parseInt(document.getElementById('dns-srv-priority').value || '10', 10);
+    const weight = parseInt(document.getElementById('dns-srv-weight').value || '5', 10);
+    const port = parseInt(document.getElementById('dns-srv-port').value || '5060', 10);
+    const target = document.getElementById('dns-srv-target').value.trim();
+
+    payload.name = `${service}.${proto}.${nameVal}`;
+    payload.data = {
+      service,
+      proto,
+      name: nameVal,
+      priority: srvPriority,
+      weight,
+      port,
+      target
+    };
+  } else if (typeVal === 'CAA') {
+    const flags = parseInt(document.getElementById('dns-caa-flags').value || '0', 10);
+    const tag = document.getElementById('dns-caa-tag').value;
+    const value = document.getElementById('dns-caa-value').value.trim();
+
+    payload.data = {
+      flags,
+      tag,
+      value
+    };
+  } else if (typeVal === 'MX') {
+    payload.content = contentVal;
     payload.priority = priorityVal;
+  } else {
+    payload.content = contentVal;
   }
 
   try {

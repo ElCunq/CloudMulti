@@ -188,34 +188,99 @@
               <div style="display: grid; grid-template-columns: 110px 1fr 1.5fr 85px auto; gap: 10px; align-items: center;">
                 <select id="dns-type" class="select-input" style="width: 100%; padding-left: 12px;" onchange="onAddTypeChange()">
                   <option value="A">A</option>
+                  <option value="AAAA">AAAA</option>
                   <option value="CNAME">CNAME</option>
                   <option value="TXT">TXT</option>
                   <option value="MX">MX</option>
                   <option value="NS">NS</option>
+                  <option value="SRV">SRV</option>
+                  <option value="CAA">CAA</option>
                 </select>
                 <input type="text" id="dns-name" class="form-input" placeholder="Name (@ or sub)" required style="padding-left: 12px;">
                 <input type="text" id="dns-content" class="form-input" placeholder="IPv4 address (e.g. 1.2.3.4)" required style="padding-left: 12px;">
                 <input type="number" id="dns-ttl" class="form-input" value="1" title="TTL (1 = Auto)" placeholder="TTL" style="padding-left: 12px;">
                 <button type="submit" id="btn-submit-dns" class="btn btn-primary btn-sm" style="padding: 10px 20px;">Add</button>
               </div>
-              <div style="display: flex; gap: 20px; align-items: center; padding-left: 4px; flex-wrap: wrap;">
-                <!-- Proxy switch (visible for A, CNAME) -->
-                <div id="dns-proxy-container" style="display: flex; align-items: center; gap: 8px;">
+
+              <!-- Advanced Settings / Sub-forms -->
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Proxy switch (visible for A, AAAA, CNAME) -->
+                <div id="dns-proxy-container" style="display: flex; align-items: center; gap: 8px; padding-left: 4px;">
                   <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-muted); font-weight: 500;">
                     <input type="checkbox" id="dns-proxied" checked>
                     Proxy traffic through Cloudflare
                   </label>
                 </div>
                 <!-- Priority input (visible for MX) -->
-                <div id="dns-priority-container" style="display: none; align-items: center; gap: 8px;">
+                <div id="dns-priority-container" style="display: none; align-items: center; gap: 8px; padding-left: 4px;">
                   <label style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; font-weight: 500;">
                     Priority:
                     <input type="number" id="dns-priority" class="form-input" value="10" min="0" max="65535" style="width: 80px; padding: 6px 10px;">
                   </label>
                 </div>
+                
+                <!-- SRV inputs container (visible for SRV) -->
+                <div id="dns-srv-container" style="display: none; width: 100%; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+                  <div style="flex: 1; min-width: 110px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Service</label>
+                    <input type="text" id="dns-srv-service" class="form-input" placeholder="_sip" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 100px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Protocol</label>
+                    <select id="dns-srv-proto" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                      <option value="_tcp">_tcp</option>
+                      <option value="_udp">_udp</option>
+                      <option value="_tls">_tls</option>
+                    </select>
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Priority</label>
+                    <input type="number" id="dns-srv-priority" class="form-input" value="10" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Weight</label>
+                    <input type="number" id="dns-srv-weight" class="form-input" value="5" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Port</label>
+                    <input type="number" id="dns-srv-port" class="form-input" value="5060" min="1" max="65535" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 2; min-width: 160px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Target Host</label>
+                    <input type="text" id="dns-srv-target" class="form-input" placeholder="sipserver.domain.com" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                </div>
+
+                <!-- CAA inputs container (visible for CAA) -->
+                <div id="dns-caa-container" style="display: none; width: 100%; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Flags</label>
+                    <input type="number" id="dns-caa-flags" class="form-input" value="0" min="0" max="255" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1.5; min-width: 120px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Tag</label>
+                    <select id="dns-caa-tag" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                      <option value="issue">issue (certs)</option>
+                      <option value="issuewild">issuewild (wildcards)</option>
+                      <option value="iodef">iodef (violations)</option>
+                    </select>
+                  </div>
+                  <div style="flex: 3; min-width: 180px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Value (CA domain)</label>
+                    <input type="text" id="dns-caa-value" class="form-input" placeholder="letsencrypt.org" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                </div>
               </div>
             </div>
           </form>
+
+          <!-- DNS Record Search Box -->
+          <div class="search-box" style="margin-bottom: 12px; max-width: 100%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; left: 12px;">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="dns-search-input" class="search-input" placeholder="Search DNS records by type, name, or content..." oninput="filterDnsTable()" style="padding-left: 36px; font-size: 0.85rem;">
+          </div>
 
           <div id="dns-table-container" class="data-table-container">
             <!-- Loaded dynamically -->
@@ -402,20 +467,82 @@
           <label class="form-label">Record Type</label>
           <select id="edit-dns-type" class="select-input" style="width: 100%;" required onchange="onEditTypeChange()">
             <option value="A">A</option>
+            <option value="AAAA">AAAA</option>
             <option value="CNAME">CNAME</option>
             <option value="TXT">TXT</option>
             <option value="MX">MX</option>
             <option value="NS">NS</option>
+            <option value="SRV">SRV</option>
+            <option value="CAA">CAA</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="edit-dns-name-group">
           <label class="form-label">Name (@ or subdomain)</label>
-          <input type="text" id="edit-dns-name" class="form-input" required style="padding-left: 12px;">
+          <input type="text" id="edit-dns-name" class="form-input" style="padding-left: 12px;">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="edit-dns-content-group">
           <label class="form-label" id="edit-dns-content-label">Content (IPv4, target domain, or TXT value)</label>
-          <input type="text" id="edit-dns-content" class="form-input" required style="padding-left: 12px;">
+          <input type="text" id="edit-dns-content" class="form-input" style="padding-left: 12px;">
         </div>
+
+        <!-- SRV inputs container (visible for SRV) -->
+        <div id="edit-dns-srv-container" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Service</label>
+              <input type="text" id="edit-dns-srv-service" class="form-input" placeholder="_sip" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Protocol</label>
+              <select id="edit-dns-srv-proto" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                <option value="_tcp">_tcp</option>
+                <option value="_udp">_udp</option>
+                <option value="_tls">_tls</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Priority</label>
+              <input type="number" id="edit-dns-srv-priority" class="form-input" value="10" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Weight</label>
+              <input type="number" id="edit-dns-srv-weight" class="form-input" value="5" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Port</label>
+              <input type="number" id="edit-dns-srv-port" class="form-input" value="5060" min="1" max="65535" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Target Host</label>
+            <input type="text" id="edit-dns-srv-target" class="form-input" placeholder="sipserver.domain.com" style="padding: 6px 10px; font-size: 0.8rem;">
+          </div>
+        </div>
+
+        <!-- CAA inputs container (visible for CAA) -->
+        <div id="edit-dns-caa-container" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Flags</label>
+              <input type="number" id="edit-dns-caa-flags" class="form-input" value="0" min="0" max="255" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Tag</label>
+              <select id="edit-dns-caa-tag" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                <option value="issue">issue (certs)</option>
+                <option value="issuewild">issuewild (wildcards)</option>
+                <option value="iodef">iodef (violations)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Value (CA domain)</label>
+            <input type="text" id="edit-dns-caa-value" class="form-input" placeholder="letsencrypt.org" style="padding: 6px 10px; font-size: 0.8rem;">
+          </div>
+        </div>
+
         <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div>
             <label class="form-label">TTL (1 = Auto)</label>
