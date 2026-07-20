@@ -26,7 +26,12 @@ pub fn build_router(state: AppState) -> Router {
         .route("/zones", get(zones::list_zones).post(zones::create_zone))
         // DNS Records per Zone
         .route("/zones/:zone_id/dns", get(dns::list_dns_records).post(dns::create_dns_record))
-        .route("/zones/:zone_id/dns/:record_id", delete(dns::delete_dns_record))
+        .route(
+            "/zones/:zone_id/dns/:record_id",
+            delete(dns::delete_dns_record)
+                .put(dns::update_dns_record)
+                .patch(dns::update_dns_record),
+        )
         // Quick Operations
         .route("/zones/:zone_id/purge-cache", post(quick_ops::purge_cache))
         .route("/zones/:zone_id/ssl", patch(quick_ops::update_ssl));

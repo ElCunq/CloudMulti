@@ -122,9 +122,10 @@ function renderZonesGrid() {
   grid.innerHTML = filtered.map(z => {
     const statusClass = z.status.toLowerCase() === 'active' ? 'active' : 'pending';
     const nsText = z.name_servers && z.name_servers.length > 0 ? z.name_servers.slice(0, 2).join(', ') : 'Pending NS check';
+    const isSelected = activeZone && activeZone.id === z.id;
 
     return `
-      <div class="zone-card">
+      <div class="zone-card ${isSelected ? 'selected' : ''}" data-zone-id="${z.id}">
         <div>
           <div class="zone-card-header">
             <div class="zone-domain">
@@ -331,9 +332,29 @@ async function openZoneDetail(zone) {
   document.getElementById('detail-zone-badge').textContent = zone.account_name;
   switchZoneDetailTab('dns');
 
-  document.getElementById('zone-detail-modal').showModal();
+  // Highlight selected card
+  document.querySelectorAll('.zone-card').forEach(card => {
+    if (card.dataset.zoneId === zone.id) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+
+  // Reveal inline zone panel right under domains grid
+  const panel = document.getElementById('inline-zone-panel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   await loadDnsRecords();
   await loadSslSetting();
+}
+
+function closeInlineZonePanel() {
+  const panel = document.getElementById('inline-zone-panel');
+  if (panel) panel.style.display = 'none';
+  document.querySelectorAll('.zone-card').forEach(card => card.classList.remove('selected'));
+  activeZone = null;
 }
 
 // DNS CRUD
@@ -363,31 +384,86 @@ async function loadDnsRecords() {
             <th>Content</th>
             <th>TTL</th>
             <th>Proxy Status</th>
-            <th style="text-align: right;">Action</th>
+            <th style="text-align: right;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${records.map(r => `
-            <tr>
-              <td><span class="code-pill">${r.type}</span></td>
-              <td><strong style="color: var(--text-main);">${r.name}</strong></td>
-              <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${r.content}</span></td>
-              <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
-              <td>
-                <span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">
-                  ${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}
-                </span>
-              </td>
-              <td style="text-align: right;">
-                <button class="btn btn-danger btn-sm" onclick="handleDeleteDnsRecord('${r.id}', '${r.name}')">Delete</button>
-              </td>
-            </tr>
-          `).join('')}
+          ${records.map(r => {
+            const safeName = r.name.replace(/'/g, "\\'");
+            const safeContent = r.content.replace(/'/g, "\\'");
+            return `
+              <tr>
+                <td><span class="code-pill">${r.type}</span></td>
+                <td><strong style="color: var(--text-main);">${r.name}</strong></td>
+                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${r.content}</span></td>
+                <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
+                <td>
+                  <span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">
+                    ${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}
+                  </span>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                  <button class="btn btn-secondary btn-sm" style="margin-right: 6px;" onclick="openEditDnsModal('${r.id}', '${r.type}', '${safeName}', '${safeContent}', ${r.ttl}, ${r.proxied})">Düzenle</button>
+                  <button class="btn btn-danger btn-sm" onclick="handleDeleteDnsRecord('${r.id}', '${safeName}')">Sil</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     `;
   } catch (err) {
     container.innerHTML = `<div style="padding: 24px; color: var(--status-error);">Error loading DNS: ${err.message}</div>`;
+  }
+}
+
+function openEditDnsModal(recordId, type, name, content, ttl, proxied) {
+  document.getElementById('edit-dns-id').value = recordId;
+  document.getElementById('edit-dns-type').value = type;
+  document.getElementById('edit-dns-name').value = name;
+  document.getElementById('edit-dns-content').value = content;
+  document.getElementById('edit-dns-ttl').value = ttl;
+  document.getElementById('edit-dns-proxied').checked = proxied;
+  document.getElementById('edit-dns-modal').showModal();
+}
+
+async function handleUpdateDnsRecord(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btn-submit-edit-dns');
+  const recordId = document.getElementById('edit-dns-id').value;
+  const typeVal = document.getElementById('edit-dns-type').value;
+  const nameVal = document.getElementById('edit-dns-name').value.trim();
+  const contentVal = document.getElementById('edit-dns-content').value.trim();
+  const ttlVal = parseInt(document.getElementById('edit-dns-ttl').value || '1', 10);
+  const proxiedVal = document.getElementById('edit-dns-proxied').checked;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const resp = await fetch(`/api/zones/${activeZone.id}/dns/${recordId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: typeVal,
+        name: nameVal,
+        content: contentVal,
+        ttl: ttlVal,
+        proxied: proxiedVal
+      })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Failed to update DNS record');
+
+    showToast(`DNS record "${nameVal}" updated successfully!`, 'success');
+    document.getElementById('edit-dns-modal').close();
+    await loadDnsRecords();
+  } catch (err) {
+    showToast(`Error updating DNS record: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
   }
 }
 

@@ -363,6 +363,65 @@ body {
   opacity: 1;
 }
 
+.zone-card.selected {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary), var(--shadow-md), 0 0 35px hsla(24, 100%, 55%, 0.15);
+  transform: translateY(-2px);
+}
+
+.zone-card.selected::before {
+  opacity: 1;
+}
+
+/* Inline Zone Management Panel right below the domains grid */
+.inline-zone-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin-top: 32px;
+  box-shadow: var(--shadow-lg), 0 0 40px hsla(24, 100%, 55%, 0.08);
+  animation: panelSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  scroll-margin-top: 24px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.panel-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-md);
+  background: hsla(24, 100%, 55%, 0.12);
+  border: 1px solid hsla(24, 100%, 55%, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+}
+
+.panel-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+@keyframes panelSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .zone-card-header {
   display: flex;
   justify-content: space-between;

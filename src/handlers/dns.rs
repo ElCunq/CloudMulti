@@ -41,3 +41,18 @@ pub async fn delete_dns_record(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+pub async fn update_dns_record(
+    State(state): State<AppState>,
+    Path((zone_id, record_id)): Path<(String, String)>,
+    Json(payload): Json<CreateDnsRecordRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    if payload.name.trim().is_empty() || payload.content.trim().is_empty() {
+        return Err(AppError::BadRequest("DNS record name and content cannot be empty".to_string()));
+    }
+
+    let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
+    let record = state.cf.update_dns_record(&token, &zone_id, &record_id, &payload).await?;
+
+    Ok(Json(record))
+}

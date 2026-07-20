@@ -158,6 +158,27 @@ impl CloudflareClient {
         Self::check_response(resp)
     }
 
+    pub async fn update_dns_record(
+        &self,
+        token: &str,
+        zone_id: &str,
+        record_id: &str,
+        payload: &crate::models::CreateDnsRecordRequest,
+    ) -> Result<CfDnsRecord, AppError> {
+        let url = format!("{}/zones/{}/dns_records/{}", CF_API_BASE, zone_id, record_id);
+        let resp = self
+            .http
+            .put(&url)
+            .bearer_auth(token)
+            .json(payload)
+            .send()
+            .await?
+            .json::<CfResponse<CfDnsRecord>>()
+            .await?;
+
+        Self::check_response(resp)
+    }
+
     pub async fn delete_dns_record(
         &self,
         token: &str,
