@@ -17,21 +17,24 @@
         </div>
         <div class="brand-text">
           <h1>CloudMulti</h1>
-          <p>Unified Multi-Account Edge Management</p>
+          <p id="lbl-nav-subtitle">Unified Multi-Account Edge Management</p>
         </div>
       </div>
-      <div class="nav-actions">
+      <div class="nav-actions" style="display: flex; align-items: center; gap: 10px;">
+        <button id="btn-lang-switch" class="btn btn-secondary" onclick="toggleLanguage()" style="font-weight: 600; padding: 11px 16px;">
+          🌐 TR
+        </button>
         <button id="btn-open-add-zone" class="btn btn-primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14"/><path d="M12 5v14"/>
           </svg>
-          Add Domain
+          <span id="lbl-add-domain">Add Domain</span>
         </button>
         <button id="btn-open-accounts" class="btn btn-secondary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          Accounts
+          <span id="lbl-accounts">Accounts</span>
         </button>
       </div>
     </header>
@@ -42,13 +45,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
         </svg>
-        Domains & DNS
+        <span id="lbl-tab-domains">Domain & DNS</span>
       </button>
       <button id="view-tab-tunnels" class="view-tab-btn" onclick="switchMainView('tunnels')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
         </svg>
-        Zero Trust Tunnels
+        <span id="lbl-tab-tunnels">Zero Trust Tunnels</span>
       </button>
     </div>
 
@@ -56,7 +59,7 @@
     <section class="stats-ribbon">
       <div class="stat-card">
         <div class="stat-info">
-          <span>Connected Accounts</span>
+          <span id="lbl-stat-accounts">Connected Accounts</span>
           <h2 id="stat-accounts">0</h2>
         </div>
         <div class="stat-icon">
@@ -67,7 +70,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>Aggregated Zones</span>
+          <span id="lbl-stat-zones">Aggregated Zones</span>
           <h2 id="stat-zones">0</h2>
         </div>
         <div class="stat-icon" style="color: var(--accent-secondary);">
@@ -78,7 +81,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>Zero Trust Tunnels</span>
+          <span id="lbl-stat-tunnels">Zero Trust Tunnels</span>
           <h2 id="stat-tunnels">0 / 0</h2>
         </div>
         <div class="stat-icon" style="color: #a855f7;">
@@ -89,7 +92,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>Today's Requests</span>
+          <span id="lbl-stat-requests">Today's Requests</span>
           <h2 id="stat-requests">0</h2>
         </div>
         <div class="stat-icon" style="color: #10b981;">
@@ -100,7 +103,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>Today's Bandwidth</span>
+          <span id="lbl-stat-bandwidth">Today's Bandwidth</span>
           <h2 id="stat-bandwidth">0 MB</h2>
         </div>
         <div class="stat-icon" style="color: #3b82f6;">
@@ -111,7 +114,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-info">
-          <span>Unique Visitors</span>
+          <span id="lbl-stat-visitors">Unique Visitors</span>
           <h2 id="stat-visitors">0</h2>
         </div>
         <div class="stat-icon" style="color: #f59e0b;">
@@ -292,40 +295,40 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
             <!-- Cache Purge Card -->
             <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
-              <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">Instant Edge Cache Purge</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+              <h3 id="lbl-cache-purge-title" style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">Instant Edge Cache Purge</h3>
+              <p id="lbl-cache-purge-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
                 Purge all cached resources across Cloudflare's global edge network immediately. Users will receive fresh assets from your origin on next request.
               </p>
               <button id="btn-purge-cache" class="btn btn-danger" style="width: 100%;" onclick="handlePurgeCache()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                 </svg>
-                Purge Everything from Cache
+                <span id="lbl-btn-purge-all">Purge All Edge Cache</span>
               </button>
             </div>
 
             <!-- SSL/TLS Card -->
             <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
-              <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">SSL/TLS Encryption Mode</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+              <h3 id="lbl-ssl-title" style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">SSL/TLS Encryption Mode</h3>
+              <p id="lbl-ssl-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
                 Configure how Cloudflare encrypts traffic between visitors and your origin server.
               </p>
               <div id="ssl-options" class="ssl-grid">
                 <div class="ssl-option" onclick="handleUpdateSsl('off')" id="ssl-off">
-                  <h4>Off</h4>
-                  <p>No encryption</p>
+                  <h4 id="lbl-ssl-off-title">Off</h4>
+                  <p id="lbl-ssl-off-desc">No encryption</p>
                 </div>
                 <div class="ssl-option" onclick="handleUpdateSsl('flexible')" id="ssl-flexible">
-                  <h4>Flexible</h4>
-                  <p>Visitor to CF only</p>
+                  <h4 id="lbl-ssl-flexible-title">Flexible</h4>
+                  <p id="lbl-ssl-flexible-desc">Visitor to CF only</p>
                 </div>
                 <div class="ssl-option" onclick="handleUpdateSsl('full')" id="ssl-full">
-                  <h4>Full</h4>
-                  <p>Encrypts to Origin</p>
+                  <h4 id="lbl-ssl-full-title">Full</h4>
+                  <p id="lbl-ssl-full-desc">Encrypts to Origin</p>
                 </div>
                 <div class="ssl-option" onclick="handleUpdateSsl('strict')" id="ssl-strict">
-                  <h4>Strict</h4>
-                  <p>Valid Origin Cert</p>
+                  <h4 id="lbl-ssl-strict-title">Strict</h4>
+                  <p id="lbl-ssl-strict-desc">Valid Origin Cert</p>
                 </div>
               </div>
             </div>
@@ -350,7 +353,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
-            Refresh Tunnels
+            <span id="lbl-btn-refresh-tunnels">Refresh Tunnels</span>
           </button>
         </div>
       </section>

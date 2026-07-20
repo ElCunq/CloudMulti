@@ -2,9 +2,292 @@
 let accountsList = [];
 let zonesList = [];
 let activeZone = null;
+let currentLang = localStorage.getItem('lang') || 'en';
+
+const TRANSLATIONS = {
+  en: {
+    nav_subtitle: "Unified Multi-Account Edge Management",
+    btn_manage_accounts: "Manage Accounts",
+    btn_add_domain: "Add Domain",
+    tab_domains: "Domain & DNS",
+    tab_tunnels: "Zero Trust Tunnels",
+    search_placeholder: "Search domains by name or account...",
+    btn_refresh: "Refresh Data",
+    status_active: "Active",
+    status: "Status",
+    account: "Account",
+    ssl_encryption: "SSL/TLS Mode",
+    security_level: "Security Level",
+    dev_mode: "Development Mode",
+    under_attack: "Under Attack",
+    quick_purge: "Purge Cache",
+    quick_purge_loading: "Purging...",
+    quick_purged: "Purged!",
+    inline_panel_desc: "Manage DNS records, instant edge cache purges, and SSL/TLS encryption right underneath.",
+    tab_dns_records: "DNS Records",
+    tab_cache_ssl: "Edge Cache & SSL",
+    add_dns_title: "+ Add New DNS Record",
+    dns_name_placeholder: "Name (@ or sub)",
+    dns_content_placeholder: "IPv4 address (e.g. 1.2.3.4)",
+    btn_dns_add: "Add",
+    btn_dns_adding: "Adding...",
+    dns_proxy_label: "Proxy traffic through Cloudflare",
+    dns_priority_label: "Priority:",
+    dns_search_placeholder: "Search DNS records by type, name, or content...",
+    no_dns_found: "No DNS records found for this domain. Add one above.",
+    cache_purge_title: "Instant Edge Cache Purge",
+    cache_purge_desc: "Purge all cached resources across Cloudflare's global edge network immediately. Users will receive fresh assets from your origin on next request.",
+    btn_purge_all: "Purge All Edge Cache",
+    btn_purging: "Purging...",
+    ssl_title: "SSL/TLS Encryption Mode",
+    ssl_desc: "Configure how Cloudflare encrypts traffic between visitors and your origin server.",
+    ssl_off_title: "Off",
+    ssl_off_desc: "No encryption",
+    ssl_flexible_title: "Flexible",
+    ssl_flexible_desc: "Visitor to CF only",
+    ssl_full_title: "Full",
+    ssl_full_desc: "Encrypts to Origin",
+    ssl_strict_title: "Strict",
+    ssl_strict_desc: "Valid Origin Cert",
+    zt_title: "Cloudflare Access / Zero Trust Tunnels",
+    zt_desc: "Monitor connection health, tunnel statuses, and active connectors across all registered accounts.",
+    zt_btn_refresh: "Refresh Tunnels",
+    zt_th_name: "Tunnel Name",
+    zt_th_status: "Status",
+    zt_th_connections: "Connections",
+    zt_th_created: "Created",
+    zt_th_account: "Account",
+    zt_active_connectors: "Active Connectors",
+    zt_no_tunnels: "No tunnels configured on your Cloudflare accounts.",
+    modal_acc_title: "Associated Cloudflare Accounts",
+    modal_acc_desc: "Manage API tokens to query zones and tunnels across your Cloudflare accounts.",
+    modal_acc_empty: "No accounts configured yet. Add your first Cloudflare API Token to begin.",
+    modal_acc_th_name: "Name",
+    modal_acc_th_token: "Token (Encrypted)",
+    modal_acc_th_actions: "Actions",
+    modal_add_acc_title: "Add New Cloudflare Account",
+    modal_add_acc_name_label: "Account Identifier Name",
+    modal_add_acc_token_label: "API Token (with DNS, Zone, and Account read/write permissions)",
+    btn_save_account: "Save Account",
+    btn_saving: "Saving...",
+    modal_add_domain_title: "Add Domain to Cloudflare",
+    modal_add_domain_name_label: "Domain Name",
+    modal_add_domain_acc_label: "Select Associated Cloudflare Account",
+    modal_add_domain_help: "The backend will automatically resolve the underlying Cloudflare Account ID (`cf_account_id`) from your decrypted token.",
+    btn_create_domain: "Create Domain",
+    btn_creating: "Creating...",
+    modal_edit_dns_title: "Edit DNS Record",
+    edit_dns_type_label: "Record Type",
+    edit_dns_name_label: "Name (@ or subdomain)",
+    edit_dns_content_label: "Content (IPv4, target domain, or TXT value)",
+    edit_dns_ttl_label: "TTL (1 = Auto)",
+    edit_dns_priority_label: "Priority",
+    edit_dns_proxy_label: "Proxy traffic through Cloudflare",
+    btn_save_changes: "Save Changes",
+    btn_saving_changes: "Saving...",
+    btn_cancel: "Cancel",
+    btn_close: "Close",
+    stat_accounts: "Connected Accounts",
+    stat_zones: "Aggregated Zones",
+    stat_tunnels: "Zero Trust Tunnels",
+    stat_requests: "Today's Requests",
+    stat_bandwidth: "Today's Bandwidth",
+    stat_visitors: "Unique Visitors",
+    refreshing: "Refreshing...",
+    delete_confirm_acc: "Are you sure you want to delete this account?",
+    delete_confirm_dns: "Delete DNS record \"{name}\"?",
+    purge_confirm: "Purge ALL cached edge files for {name}?",
+  },
+  tr: {
+    nav_subtitle: "Birleşik Çoklu Hesap Edge Yönetimi",
+    btn_manage_accounts: "Hesapları Yönet",
+    btn_add_domain: "Alan Adı Ekle",
+    tab_domains: "Alan Adı & DNS",
+    tab_tunnels: "Zero Trust Tünelleri",
+    search_placeholder: "Alan adlarını isim veya hesaba göre ara...",
+    btn_refresh: "Verileri Yenile",
+    status_active: "Aktif",
+    status: "Durum",
+    account: "Hesap",
+    ssl_encryption: "SSL/TLS Modu",
+    security_level: "Güvenlik Seviyesi",
+    dev_mode: "Geliştirici Modu",
+    under_attack: "Saldırı Altında",
+    quick_purge: "Önbelleği Temizle",
+    quick_purge_loading: "Temizleniyor...",
+    quick_purged: "Temizlendi!",
+    inline_panel_desc: "DNS kayıtlarını, anlık edge önbellek temizliğini ve SSL/TLS şifrelemesini aşağıdan yönetin.",
+    tab_dns_records: "DNS Kayıtları",
+    tab_cache_ssl: "Önbellek & SSL",
+    add_dns_title: "+ Yeni DNS Kaydı Ekle",
+    dns_name_placeholder: "İsim (@ veya alt alan adı)",
+    dns_content_placeholder: "IPv4 adresi (örn. 1.2.3.4)",
+    btn_dns_add: "Ekle",
+    btn_dns_adding: "Ekleniyor...",
+    dns_proxy_label: "Trafiği Cloudflare üzerinden proxy'le",
+    dns_priority_label: "Öncelik:",
+    dns_search_placeholder: "DNS kayıtlarını tür, isim veya içeriğe göre ara...",
+    no_dns_found: "Bu alan adı için DNS kaydı bulunamadı. Yukarıdan ekleyin.",
+    cache_purge_title: "Anlık Edge Önbellek Temizliği",
+    cache_purge_desc: "Cloudflare'in küresel edge ağı üzerindeki tüm önbelleğe alınmış kaynakları hemen temizleyin. Kullanıcılar bir sonraki istekte doğrudan sunucunuzdan güncel dosyaları alacaktır.",
+    btn_purge_all: "Tüm Edge Önbelleğini Temizle",
+    btn_purging: "Temizleniyor...",
+    ssl_title: "SSL/TLS Şifreleme Modu",
+    ssl_desc: "Cloudflare edge sunucuları ile ana sunucunuz arasındaki şifreleme seviyesini yapılandırın.",
+    ssl_off_title: "Kapalı",
+    ssl_off_desc: "Şifreleme yok",
+    ssl_flexible_title: "Flexible",
+    ssl_flexible_desc: "Yalnızca Ziyaretçi-CF",
+    ssl_full_title: "Full",
+    ssl_full_desc: "Origin'e şifreli",
+    ssl_strict_title: "Strict",
+    ssl_strict_desc: "Geçerli Origin Sert.",
+    zt_title: "Cloudflare Access / Zero Trust Tünelleri",
+    zt_desc: "Tüm kayıtlı hesaplardaki bağlantı sağlığını, tünel durumlarını ve aktif konnektörleri izleyin.",
+    zt_btn_refresh: "Tünelleri Yenile",
+    zt_th_name: "Tünel Adı",
+    zt_th_status: "Durum",
+    zt_th_connections: "Bağlantılar",
+    zt_th_created: "Oluşturulma",
+    zt_th_account: "Hesap",
+    zt_active_connectors: "Aktif Konnektörler",
+    zt_no_tunnels: "Cloudflare hesaplarınızda yapılandırılmış tünel bulunamadı.",
+    modal_acc_title: "Bağlı Cloudflare Hesapları",
+    modal_acc_desc: "Cloudflare hesaplarınızdaki alan adlarını ve tünelleri sorgulamak için API token'larını yönetin.",
+    modal_acc_empty: "Henüz hesap yapılandırılmadı. Başlamak için ilk Cloudflare API Token'ınızı ekleyin.",
+    modal_acc_th_name: "İsim",
+    modal_acc_th_token: "Token (Şifreli)",
+    modal_acc_th_actions: "İşlemler",
+    modal_add_acc_title: "Yeni Cloudflare Hesabı Ekle",
+    modal_add_acc_name_label: "Hesap Tanımlayıcı Adı",
+    modal_add_acc_token_label: "API Token (DNS, Zone ve Account okuma/yazma izinleriyle)",
+    btn_save_account: "Hesabı Kaydet",
+    btn_saving: "Kaydediliyor...",
+    modal_add_domain_title: "Cloudflare'e Alan Adı Ekle",
+    modal_add_domain_name_label: "Alan Adı",
+    modal_add_domain_acc_label: "İlişkili Cloudflare Hesabını Seçin",
+    modal_add_domain_help: "Arka uç, şifresi çözülmüş token'ınızdan ilgili Cloudflare Hesap Kimliğini (`cf_account_id`) otomatik olarak çözecektir.",
+    btn_create_domain: "Alan Adı Oluştur",
+    btn_creating: "Oluşturuluyor...",
+    modal_edit_dns_title: "DNS Kaydını Düzenle",
+    edit_dns_type_label: "Kayıt Türü",
+    edit_dns_name_label: "İsim (@ veya alt alan adı)",
+    edit_dns_content_label: "İçerik (IPv4, hedef alan adı veya TXT değeri)",
+    edit_dns_ttl_label: "TTL (1 = Otomatik)",
+    edit_dns_priority_label: "Öncelik",
+    edit_dns_proxy_label: "Trafiği Cloudflare üzerinden proxy'le",
+    btn_save_changes: "Değişiklikleri Kaydet",
+    btn_saving_changes: "Kaydediliyor...",
+    btn_cancel: "İptal",
+    btn_close: "Kapat",
+    stat_accounts: "Bağlı Hesaplar",
+    stat_zones: "Toplu Domainler",
+    stat_tunnels: "Zero Trust Tünelleri",
+    stat_requests: "Bugünkü İstekler",
+    stat_bandwidth: "Bugünkü Bant Genişliği",
+    stat_visitors: "Tekil Ziyaretçiler",
+    refreshing: "Yenileniyor...",
+    delete_confirm_acc: "Bu hesabı silmek istediğinizden emin misiniz?",
+    delete_confirm_dns: "DNS kaydı \"{name}\" silinsin mi?",
+    purge_confirm: "{name} için TÜM önbelleğe alınmış dosyalar temizlensin mi?",
+  }
+};
+
+function t(key) {
+  const dict = TRANSLATIONS[currentLang] || TRANSLATIONS['en'];
+  return dict[key] || key;
+}
+
+function toggleLanguage() {
+  currentLang = currentLang === 'en' ? 'tr' : 'en';
+  localStorage.setItem('lang', currentLang);
+  updateLanguage();
+  
+  // Re-render components with translated dynamic labels
+  renderZonesGrid();
+  loadTunnels();
+  if (activeZone) {
+    document.getElementById('lbl-add-dns-title').textContent = t('add_dns_title');
+    document.getElementById('dns-name').placeholder = t('dns_name_placeholder');
+    onAddTypeChange();
+    const searchDns = document.getElementById('dns-search-input');
+    if (searchDns) searchDns.placeholder = t('dns_search_placeholder');
+    loadDnsRecords();
+  }
+  
+  showToast(currentLang === 'en' ? 'Language set to English' : 'Dil Türkçe olarak ayarlandı', 'success');
+}
+
+function updateLanguage() {
+  const btn = document.getElementById('btn-lang-switch');
+  if (btn) {
+    btn.textContent = currentLang === 'en' ? '🌐 TR' : '🌐 EN';
+  }
+
+  const safeSetText = (id, key) => {
+    const elem = document.getElementById(id);
+    if (elem) elem.textContent = t(key);
+  };
+
+  safeSetText('lbl-nav-subtitle', 'nav_subtitle');
+  safeSetText('lbl-add-domain', 'btn_add_domain');
+  safeSetText('lbl-accounts', 'btn_manage_accounts');
+  safeSetText('lbl-tab-domains', 'tab_domains');
+  safeSetText('lbl-tab-tunnels', 'tab_tunnels');
+
+  // Stats ribbon
+  safeSetText('lbl-stat-accounts', 'stat_accounts');
+  safeSetText('lbl-stat-zones', 'stat_zones');
+  safeSetText('lbl-stat-tunnels', 'stat_tunnels');
+  safeSetText('lbl-stat-requests', 'stat_requests');
+  safeSetText('lbl-stat-bandwidth', 'stat_bandwidth');
+  safeSetText('lbl-stat-visitors', 'stat_visitors');
+
+  // Search filter
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) searchInput.placeholder = t('search_placeholder');
+
+  const accFilter = document.getElementById('account-filter');
+  if (accFilter && accFilter.options[0]) {
+    accFilter.options[0].textContent = currentLang === 'en' ? 'All Accounts' : 'Tüm Hesaplar';
+  }
+
+  const refreshBtn = document.getElementById('btn-refresh-zones');
+  if (refreshBtn) {
+    const svg = refreshBtn.querySelector('svg');
+    refreshBtn.innerHTML = '';
+    if (svg) refreshBtn.appendChild(svg);
+    refreshBtn.appendChild(document.createTextNode(' ' + t('btn_refresh')));
+  }
+
+  // Tunnels section
+  const tunnelSearch = document.getElementById('tunnel-search-input');
+  if (tunnelSearch) tunnelSearch.placeholder = t('search_placeholder');
+  safeSetText('lbl-btn-refresh-tunnels', 'zt_btn_refresh');
+
+  // Inline Panel
+  safeSetText('tab-zone-dns', 'tab_dns_records');
+  safeSetText('tab-zone-cache', 'tab_cache_ssl');
+
+  // Cache & SSL Card
+  safeSetText('lbl-cache-purge-title', 'cache_purge_title');
+  safeSetText('lbl-cache-purge-desc', 'cache_purge_desc');
+  safeSetText('lbl-btn-purge-all', 'btn_purge_all');
+  safeSetText('lbl-ssl-title', 'ssl_title');
+  safeSetText('lbl-ssl-desc', 'ssl_desc');
+  safeSetText('lbl-ssl-off-title', 'ssl_off_title');
+  safeSetText('lbl-ssl-off-desc', 'ssl_off_desc');
+  safeSetText('lbl-ssl-flexible-title', 'ssl_flexible_title');
+  safeSetText('lbl-ssl-flexible-desc', 'ssl_flexible_desc');
+  safeSetText('lbl-ssl-full-title', 'ssl_full_title');
+  safeSetText('lbl-ssl-full-desc', 'ssl_full_desc');
+  safeSetText('lbl-ssl-strict-title', 'ssl_strict_title');
+  safeSetText('lbl-ssl-strict-desc', 'ssl_strict_desc');
+}
 
 // DOM Initialization
 document.addEventListener('DOMContentLoaded', () => {
+  updateLanguage();
   setupEventListeners();
   refreshAllData();
 });
@@ -295,7 +578,7 @@ async function handleCreateAccount(event) {
 }
 
 async function handleDeleteAccount(id, name) {
-  if (!confirm(`Are you sure you want to delete account "${name}"? All associated zone mappings in cache will be removed.`)) return;
+  if (!confirm(t('delete_confirm_acc'))) return;
 
   try {
     const resp = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
@@ -812,7 +1095,7 @@ async function handleCreateDnsRecord(event) {
 }
 
 async function handleDeleteDnsRecord(recordId, recordName) {
-  if (!confirm(`Delete DNS record "${recordName}"?`)) return;
+  if (!confirm(t('delete_confirm_dns').replace('{name}', recordName))) return;
 
   try {
     const resp = await fetch(`/api/zones/${activeZone.id}/dns/${recordId}`, { method: 'DELETE' });
@@ -828,7 +1111,7 @@ async function handleDeleteDnsRecord(recordId, recordName) {
 // Quick Operations (Purge Cache & SSL)
 async function handlePurgeCache() {
   const btn = document.getElementById('btn-purge-cache');
-  if (!confirm(`Purge ALL cached edge files for ${activeZone.name}?`)) return;
+  if (!confirm(t('purge_confirm').replace('{name}', activeZone.name))) return;
 
   btn.disabled = true;
   btn.textContent = 'Purging Edge Cache...';
