@@ -12,6 +12,9 @@ services:
       - PORT=8080
       - DATABASE_URL=sqlite:///app/data/cloudflare.db?mode=rwc
       - RUST_LOG=info,cloudflare_dashboard_backend=debug
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - cloudmulti-data:/app/data
     restart: always

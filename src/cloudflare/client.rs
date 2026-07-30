@@ -13,7 +13,7 @@ impl CloudflareClient {
     pub fn new() -> Self {
         let http = Client::builder()
             .user_agent("Self-Hosted-Cloudflare-Dashboard/0.1.0")
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_secs(12))
             .build()
             .unwrap_or_default();
 
