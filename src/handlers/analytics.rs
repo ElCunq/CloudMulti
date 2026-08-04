@@ -46,6 +46,11 @@ pub async fn get_unified_analytics(
             tasks.push(async move {
                 match state.cf.get_graphql_analytics(&token, &zone.id, &date_geq).await {
                     Ok(resp) => {
+                        if !resp.errors.is_empty() {
+                            let errs = resp.errors.iter().map(|e| e.message.as_str()).collect::<Vec<_>>().join("; ");
+                            tracing::warn!("GraphQL analytics warning/error for zone {} (ID: {}): {}", zone.name, zone.id, errs);
+                        }
+
                         let mut requests = 0;
                         let mut bytes = 0;
                         let mut uniques = 0;
