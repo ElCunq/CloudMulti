@@ -416,7 +416,7 @@ function renderZonesGrid() {
     const isSelected = activeZone && activeZone.id === z.id;
 
     return `
-      <div class="zone-card ${isSelected ? 'selected' : ''}" data-zone-id="${z.id}">
+      <div class="zone-card ${isSelected ? 'selected' : ''}" data-zone-id="${z.id}" onclick='openZoneDetail(${JSON.stringify(z)})' style="cursor: pointer;">
         <div>
           <div class="zone-card-header">
             <div class="zone-domain">
@@ -435,35 +435,8 @@ function renderZonesGrid() {
           </div>
         </div>
 
-        <div class="zone-quick-settings">
-          <div class="quick-setting-row">
-            <span style="font-weight: 550;">SSL Mode:</span>
-            <select class="select-input select-xs" id="ssl-select-${z.id}" onchange="changeCardSsl('${z.id}', this)" onclick="event.stopPropagation()">
-              <option value="loading" disabled selected>Loading...</option>
-              <option value="off">Off</option>
-              <option value="flexible">Flexible</option>
-              <option value="full">Full</option>
-              <option value="strict">Strict</option>
-            </select>
-          </div>
-          <div class="quick-setting-row">
-            <span style="font-weight: 550;">Under Attack:</span>
-            <label class="switch" onclick="event.stopPropagation()">
-              <input type="checkbox" id="waf-switch-${z.id}" onchange="changeCardUnderAttack('${z.id}', this)">
-              <span class="slider round"></span>
-            </label>
-          </div>
-          <div class="quick-setting-row">
-            <span style="font-weight: 550;">Dev Mode:</span>
-            <label class="switch" onclick="event.stopPropagation()">
-              <input type="checkbox" id="dev-switch-${z.id}" onchange="changeCardDevMode('${z.id}', this)">
-              <span class="slider round"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="zone-card-actions">
-          <button class="btn btn-primary btn-sm" onclick='openZoneDetail(${JSON.stringify(z)})'>
+        <div class="zone-card-actions" style="margin-top: 6px;">
+          <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick='event.stopPropagation(); openZoneDetail(${JSON.stringify(z)})'>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
@@ -665,21 +638,30 @@ async function openZoneDetail(zone) {
     }
   });
 
-  // Reveal inline zone panel right under domains grid
-  const panel = document.getElementById('inline-zone-panel');
-  panel.style.display = 'block';
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Open Right-Sliding Sheet Drawer
+  const overlay = document.getElementById('sheet-overlay');
+  const panel = document.getElementById('sheet-zone-panel');
+  if (overlay) overlay.classList.add('open');
+  if (panel) panel.classList.add('open');
 
   await loadDnsRecords();
   await loadSslSetting();
 }
 
-function closeInlineZonePanel() {
-  const panel = document.getElementById('inline-zone-panel');
-  if (panel) panel.style.display = 'none';
+function closeZoneSheet() {
+  const overlay = document.getElementById('sheet-overlay');
+  const panel = document.getElementById('sheet-zone-panel');
+  if (overlay) overlay.classList.remove('open');
+  if (panel) panel.classList.remove('open');
   document.querySelectorAll('.zone-card').forEach(card => card.classList.remove('selected'));
   activeZone = null;
 }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeZoneSheet();
+  }
+});
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -1147,8 +1129,57 @@ async function handlePurgeCache() {
 }
 
 async function loadSslSetting() {
-  // Highlight currently active option if known or reset
   document.querySelectorAll('.ssl-option').forEach(o => o.classList.remove('active'));
+  try {
+    const resp = await fetch(`/api/zones/${activeZone.id}/settings`);
+    if (resp.ok) {
+      const settings = await resp.json();
+      // Highlight active SSL mode
+      const activeOpt = document.getElementById(`ssl-${settings.ssl_mode}`);
+      if (activeOpt) activeOpt.classList.add('active');
+
+      // Update Sheet switches
+      const wafSwitch = document.getElementById('sheet-waf-switch');
+      if (wafSwitch) wafSwitch.checked = (settings.security_level === 'under_attack');
+
+      const devSwitch = document.getElementById('sheet-dev-switch');
+      if (devSwitch) devSwitch.checked = (settings.development_mode === 'on');
+    }
+  } catch (e) {
+    console.warn('Failed to load zone settings:', e);
+  }
+}
+
+async function changeSheetUnderAttack(checkbox) {
+  const newLevel = checkbox.checked ? 'under_attack' : 'medium';
+  try {
+    const resp = await fetch(`/api/zones/${activeZone.id}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ security_level: newLevel })
+    });
+    if (!resp.ok) throw new Error('Failed to update security level');
+    showToast(`Under Attack Mode ${checkbox.checked ? 'ENABLED' : 'DISABLED'}`, 'success');
+  } catch (err) {
+    checkbox.checked = !checkbox.checked;
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+async function changeSheetDevMode(checkbox) {
+  const newMode = checkbox.checked ? 'on' : 'off';
+  try {
+    const resp = await fetch(`/api/zones/${activeZone.id}/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ development_mode: newMode })
+    });
+    if (!resp.ok) throw new Error('Failed to update development mode');
+    showToast(`Development Mode ${checkbox.checked ? 'ENABLED' : 'DISABLED'}`, 'success');
+  } catch (err) {
+    checkbox.checked = !checkbox.checked;
+    showToast(`Error: ${err.message}`, 'error');
+  }
 }
 
 async function handleUpdateSsl(mode) {

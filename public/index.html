@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Self-Hosted Multi-Account Cloudflare Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=1.2.0">
+  <link rel="stylesheet" href="styles.css?v=1.3.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
@@ -154,9 +154,9 @@
       <main id="zones-grid" class="zones-grid">
         <!-- Loaded dynamically by app.js -->
       </main>
-
-      <!-- Inline Zone Management Panel -->
-      <section id="inline-zone-panel" class="inline-zone-panel" style="display: none;">
+      <!-- Right-Sliding Sheet Drawer & Overlay -->
+      <div id="sheet-overlay" class="sheet-overlay" onclick="closeZoneSheet()"></div>
+      <aside id="sheet-zone-panel" class="sheet-panel">
         <div class="panel-header">
           <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
             <div class="panel-icon">
@@ -166,14 +166,14 @@
             </div>
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <h2 id="detail-zone-title" style="font-size: 1.3rem; font-weight: 700; color: var(--foreground); margin: 0; letter-spacing: -0.02em;">example.com</h2>
+                <h2 id="detail-zone-title" style="font-size: 1.25rem; font-weight: 700; color: var(--foreground); margin: 0; letter-spacing: -0.02em;">example.com</h2>
                 <span id="detail-zone-badge" class="account-badge">Personal</span>
               </div>
-              <p id="lbl-inline-panel-desc" style="font-size: 0.825rem; color: var(--muted-foreground); margin: 4px 0 0 0;">Manage DNS records, instant edge cache purges, and SSL/TLS encryption right underneath.</p>
+              <p id="lbl-inline-panel-desc" style="font-size: 0.8rem; color: var(--muted-foreground); margin: 3px 0 0 0;">Manage DNS records, edge security, and SSL encryption.</p>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="closeInlineZonePanel()">
-            ✕ Close Panel
+          <button class="btn btn-secondary btn-sm" onclick="closeZoneSheet()">
+            ✕ Close
           </button>
         </div>
 
@@ -346,11 +346,39 @@
                     <p id="lbl-ssl-strict-desc">Valid Origin Cert</p>
                   </div>
                 </div>
+              <!-- Quick Security & Dev Settings Card -->
+              <div style="background: var(--background); padding: 18px; border-radius: var(--radius); border: 1px solid var(--border); margin-top: 16px;">
+                <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 6px;">Security & Developer Settings</h3>
+                <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 14px;">
+                  Quickly toggle edge security challenges or bypass edge caching for active site development.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.02); border-radius: var(--radius); border: 1px solid var(--border);">
+                    <div>
+                      <div style="font-weight: 600; font-size: 0.85rem;">Under Attack Mode</div>
+                      <div style="font-size: 0.75rem; color: var(--muted-foreground);">Present a JS challenge to all visitors</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="sheet-waf-switch" onchange="changeSheetUnderAttack(this)">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.02); border-radius: var(--radius); border: 1px solid var(--border);">
+                    <div>
+                      <div style="font-weight: 600; font-size: 0.85rem;">Development Mode</div>
+                      <div style="font-size: 0.75rem; color: var(--muted-foreground);">Bypass cache to test origin changes live</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="sheet-dev-switch" onchange="changeSheetDevMode(this)">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </aside>
     </div>
 
     <!-- Tunnels Section -->
@@ -590,6 +618,6 @@
   <!-- Toast Stack -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=1.2.0"></script>
+  <script src="app.js?v=1.3.0"></script>
 </body>
 </html>
