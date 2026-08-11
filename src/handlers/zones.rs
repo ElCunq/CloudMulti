@@ -25,6 +25,11 @@ pub async fn list_zones(
                 }
             };
 
+            let cache_key = state.cache.make_key("zones", &token, None);
+            if let Some(cached) = state.cache.get::<Vec<ZoneSummaryResponse>>(&cache_key).await {
+                return cached;
+            }
+
             match state.cf.list_zones(&token).await {
                 Ok(zones) => {
                     let mut result = Vec::with_capacity(zones.len());
@@ -39,6 +44,7 @@ pub async fn list_zones(
                             name_servers: z.name_servers,
                         });
                     }
+                    state.cache.set(&cache_key, &result, std::time::Duration::from_secs(60)).await;
                     result
                 }
                 Err(e) => {
@@ -93,6 +99,9 @@ pub async fn create_zone(
         .await?;
 
     let _ = state.db.upsert_zone_cache(&zone.id, &account.id).await;
+    
+    // Invalidate cached lists since a new zone is created
+    state.cache.clear().await;
 
     Ok((
         StatusCode::CREATED,

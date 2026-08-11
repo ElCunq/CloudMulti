@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Shadcn UI Slate Dark Theme Tokens */
+  /* Shadcn UI Slate Dark Theme Tokens + Glassmorphism */
   --background: hsl(240, 10%, 3.9%);
   --foreground: hsl(0, 0%, 98%);
   
-  --card: hsl(240, 10%, 5.9%);
+  --card: rgba(22, 22, 26, 0.68);
   --card-foreground: hsl(0, 0%, 98%);
   
-  --popover: hsl(240, 10%, 3.9%);
+  --popover: rgba(20, 20, 23, 0.85);
   --popover-foreground: hsl(0, 0%, 98%);
   
   /* Accent color (Cloudflare Orange used strategically for focal actions) */
@@ -27,8 +27,8 @@
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(0, 0%, 98%);
   
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
   --ring: hsla(24, 100%, 50%, 0.45);
   
   --radius: 0.5rem; /* 8px */
@@ -55,6 +55,10 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--background);
+  background-image: 
+    radial-gradient(at 5% 10%, hsla(24, 100%, 50%, 0.04) 0px, transparent 40%),
+    radial-gradient(at 95% 90%, hsla(210, 100%, 50%, 0.04) 0px, transparent 40%);
+  background-attachment: fixed;
   color: var(--foreground);
   min-height: 100vh;
   line-height: 1.55;
@@ -161,6 +165,8 @@ body {
   align-items: center;
   justify-content: space-between;
   transition: border-color 0.15s ease, background-color 0.15s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .stat-card:hover {
@@ -377,6 +383,8 @@ body {
   gap: 16px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   position: relative;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .zone-card:hover {
@@ -559,6 +567,8 @@ input:checked + .slider:before {
   box-shadow: var(--shadow-lg);
   animation: panelSlideDown 0.25s ease-out forwards;
   scroll-margin-top: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .panel-header {

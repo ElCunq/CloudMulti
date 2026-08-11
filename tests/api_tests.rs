@@ -18,7 +18,8 @@ async fn test_health_check() {
     let db = Db::new(pool);
     let crypto = Arc::new(Crypto::from_key_str("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").unwrap());
     let cf = CloudflareClient::new();
-    let state = AppState { db, crypto, cf };
+    let cache = cloudflare_dashboard_backend::cache::AppCache::new();
+    let state = AppState { db, crypto, cf, cache };
     let app = build_router(state);
 
     let response = app
@@ -40,7 +41,8 @@ async fn test_account_crud_and_endpoints() {
     let db = Db::new(pool);
     let crypto = Arc::new(Crypto::from_key_str("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").unwrap());
     let cf = CloudflareClient::new();
-    let state = AppState { db: db.clone(), crypto: crypto.clone(), cf };
+    let cache = cloudflare_dashboard_backend::cache::AppCache::new();
+    let state = AppState { db: db.clone(), crypto: crypto.clone(), cf, cache };
     let app = build_router(state.clone());
 
     // 1. Check initially empty list via GET /api/accounts
@@ -120,7 +122,8 @@ async fn test_invalid_token_verification() {
     let db = Db::new(pool);
     let crypto = Arc::new(Crypto::from_key_str("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").unwrap());
     let cf = CloudflareClient::new();
-    let state = AppState { db, crypto, cf };
+    let cache = cloudflare_dashboard_backend::cache::AppCache::new();
+    let state = AppState { db, crypto, cf, cache };
     let app = build_router(state);
 
     // POST /api/accounts with invalid token should fail verification (HTTP 400 Bad Request)

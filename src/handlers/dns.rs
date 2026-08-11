@@ -13,7 +13,15 @@ pub async fn list_dns_records(
     Path(zone_id): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
+    
+    let cache_key = state.cache.make_key("dns", &token, Some(&zone_id));
+    if let Some(cached) = state.cache.get::<Vec<crate::cloudflare::models::CfDnsRecord>>(&cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let records = state.cf.list_dns_records(&token, &zone_id).await?;
+    state.cache.set(&cache_key, &records, std::time::Duration::from_secs(60)).await;
+    
     Ok(Json(records))
 }
 
@@ -32,6 +40,9 @@ pub async fn create_dns_record(
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
     let record = state.cf.create_dns_record(&token, &zone_id, &payload).await?;
 
+    // Invalidate caches
+    state.cache.clear().await;
+
     Ok((StatusCode::CREATED, Json(record)))
 }
 
@@ -41,6 +52,9 @@ pub async fn delete_dns_record(
 ) -> Result<impl IntoResponse, AppError> {
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
     let _ = state.cf.delete_dns_record(&token, &zone_id, &record_id).await?;
+
+    // Invalidate caches
+    state.cache.clear().await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -59,6 +73,9 @@ pub async fn update_dns_record(
 
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
     let record = state.cf.update_dns_record(&token, &zone_id, &record_id, &payload).await?;
+
+    // Invalidate caches
+    state.cache.clear().await;
 
     Ok(Json(record))
 }

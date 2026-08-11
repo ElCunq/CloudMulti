@@ -1,10 +1,10 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use futures::future::join_all;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 use crate::state::AppState;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UnifiedTunnelResponse {
     pub account_name: String,
     pub account_id: String,
@@ -29,6 +29,11 @@ pub async fn list_all_tunnels(
                     return Vec::new();
                 }
             };
+
+            let cache_key = state.cache.make_key("tunnels", &token, None);
+            if let Some(cached) = state.cache.get::<Vec<UnifiedTunnelResponse>>(&cache_key).await {
+                return cached;
+            }
 
             // Get all Cloudflare account IDs associated with this token
             let cf_accounts = match state.cf.get_cf_accounts(&token).await {
@@ -60,6 +65,7 @@ pub async fn list_all_tunnels(
                 }
             }
 
+            state.cache.set(&cache_key, &tunnels_list, std::time::Duration::from_secs(60)).await;
             tunnels_list
         }
     });

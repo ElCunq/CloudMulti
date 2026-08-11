@@ -20,7 +20,7 @@ pub struct CreateZoneRequest {
     pub cf_account_id: Option<String>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ZoneSummaryResponse {
     pub account_name: String,
     pub account_id: String,

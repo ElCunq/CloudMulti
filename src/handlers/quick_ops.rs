@@ -16,6 +16,9 @@ pub async fn purge_cache(
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
     let result = state.cf.purge_cache(&token, &zone_id).await?;
 
+    // Invalidate cached info
+    state.cache.clear().await;
+
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({
@@ -41,6 +44,9 @@ pub async fn update_ssl(
 
     let (_, token) = state.resolve_token_for_zone(&zone_id).await?;
     let result = state.cf.update_ssl_settings(&token, &zone_id, &mode).await?;
+
+    // Invalidate cached info
+    state.cache.clear().await;
 
     Ok((StatusCode::OK, Json(result)))
 }

@@ -46,8 +46,9 @@ async fn main() {
 
     let db = Db::new(pool);
     let cf = CloudflareClient::new();
+    let cache = cloudflare_dashboard_backend::cache::AppCache::new();
 
-    let state = AppState { db, crypto, cf };
+    let state = AppState { db, crypto, cf, cache };
     let app = build_router(state);
 
     let port: u16 = env::var("PORT")

@@ -44,6 +44,11 @@ pub async fn get_unified_analytics(
             let token = token.clone();
             let date_geq = date_geq.clone();
             tasks.push(async move {
+                let cache_key = state.cache.make_key("analytics", &token, Some(&zone.id));
+                if let Some(cached) = state.cache.get::<(i64, i64, i64)>(&cache_key).await {
+                    return cached;
+                }
+
                 match state.cf.get_graphql_analytics(&token, &zone.id, &date_geq).await {
                     Ok(resp) => {
                         if !resp.errors.is_empty() {
@@ -70,7 +75,9 @@ pub async fn get_unified_analytics(
                                 }
                             }
                         }
-                        (requests, bytes, uniques)
+                        let result = (requests, bytes, uniques);
+                        state.cache.set(&cache_key, &result, std::time::Duration::from_secs(60)).await;
+                        result
                     }
                     Err(e) => {
                         tracing::warn!("Failed to fetch analytics for zone {}: {:?}", zone.name, e);

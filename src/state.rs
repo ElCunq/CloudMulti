@@ -2,6 +2,7 @@ use crate::cloudflare::CloudflareClient;
 use crate::crypto::Crypto;
 use crate::db::{AccountRecord, Db};
 use crate::error::AppError;
+use crate::cache::AppCache;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -9,6 +10,7 @@ pub struct AppState {
     pub db: Db,
     pub crypto: Arc<Crypto>,
     pub cf: CloudflareClient,
+    pub cache: AppCache,
 }
 
 impl AppState {
