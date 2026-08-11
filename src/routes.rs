@@ -50,7 +50,29 @@ pub fn build_router(state: AppState) -> Router {
     Router::new()
         .nest("/api", api_routes)
         .fallback_service(spa_service)
+        .layer(axum::middleware::from_fn(no_cache_middleware))
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state)
+}
+
+async fn no_cache_middleware(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> impl axum::response::IntoResponse {
+    let mut response = next.run(req).await;
+    let headers = response.headers_mut();
+    headers.insert(
+        axum::http::header::CACHE_CONTROL,
+        axum::http::HeaderValue::from_static("no-cache, no-store, must-revalidate"),
+    );
+    headers.insert(
+        axum::http::header::PRAGMA,
+        axum::http::HeaderValue::from_static("no-cache"),
+    );
+    headers.insert(
+        axum::http::header::EXPIRES,
+        axum::http::HeaderValue::from_static("0"),
+    );
+    response
 }
