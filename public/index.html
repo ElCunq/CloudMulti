@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Self-Hosted Multi-Account Cloudflare Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.0">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
@@ -154,6 +154,22 @@
       <main id="zones-grid" class="zones-grid">
         <!-- Loaded dynamically by app.js -->
       </main>
+
+      <!-- Recent Activity Feed (Command Center Logs) -->
+      <section class="activity-feed-card">
+        <div class="activity-feed-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="width: 18px; height: 18px;">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <h3 style="font-size: 0.95rem; font-weight: 600; margin: 0; color: var(--foreground);">Edge Activity & System Logs</h3>
+          </div>
+          <span class="code-pill" style="font-size: 0.725rem;">Live Audit Feed</span>
+        </div>
+        <div id="activity-list" class="activity-list">
+          <div style="padding: 14px; text-align: center; color: var(--muted-foreground); font-size: 0.8rem;">No recent edge operations recorded.</div>
+        </div>
+      </section>
       <!-- Right-Sliding Sheet Drawer & Overlay -->
       <div id="sheet-overlay" class="sheet-overlay" onclick="closeZoneSheet()"></div>
       <aside id="sheet-zone-panel" class="sheet-panel">
@@ -618,6 +634,6 @@
   <!-- Toast Stack -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=1.4.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

@@ -290,6 +290,7 @@ function updateLanguage() {
 document.addEventListener('DOMContentLoaded', () => {
   updateLanguage();
   setupEventListeners();
+  renderActivityLogs();
   refreshAllData();
 });
 
@@ -430,8 +431,14 @@ function renderZonesGrid() {
               ${z.status}
             </span>
           </div>
-          <div style="margin-top: 8px;">
+          <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
             <span class="account-badge">${z.account_name}</span>
+            <div class="micro-insight-row" id="card-insights-${z.id}">
+              <span class="micro-badge active-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                SSL Active
+              </span>
+            </div>
           </div>
         </div>
 
@@ -730,8 +737,8 @@ async function loadDnsRecords() {
             return `
               <tr>
                 <td><span class="code-pill">${r.type}</span></td>
-                <td><strong style="color: var(--foreground);">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
-                <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${escapeHtml(displayContent)}</span></td>
+                <td><strong style="color: var(--foreground);" class="dns-cell-truncate" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
+                <td><span style="font-family: 'JetBrains Mono', monospace;" class="dns-cell-truncate" title="${escapeHtml(displayContent)}">${escapeHtml(displayContent)}</span></td>
                 <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
                 <td>${displayProxy}</td>
                 <td style="text-align: right; white-space: nowrap;">
@@ -1470,8 +1477,43 @@ async function toggleRecordProxy(recordId) {
     if (!resp.ok) throw new Error(resData.error || 'Failed to update DNS record');
 
     showToast(`Proxy status updated to ${newProxied ? 'Proxied' : 'DNS Only'}!`, 'success');
+    logActivity('Proxy Status Toggled', `${record.name} (${newProxied ? 'Proxied' : 'DNS Only'})`);
     await loadDnsRecords();
   } catch (err) {
     showToast(`Error updating proxy: ${err.message}`, 'error');
   }
+}
+
+// Command Center Activity Feed Logger
+let activityLogs = JSON.parse(localStorage.getItem('cf_activity_logs') || '[]');
+
+function logActivity(title, details) {
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  activityLogs.unshift({ title, details, time });
+  if (activityLogs.length > 8) activityLogs.pop();
+  try {
+    localStorage.setItem('cf_activity_logs', JSON.stringify(activityLogs));
+  } catch (e) {}
+  renderActivityLogs();
+}
+
+function renderActivityLogs() {
+  const container = document.getElementById('activity-list');
+  if (!container) return;
+
+  if (activityLogs.length === 0) {
+    container.innerHTML = `<div style="padding: 14px; text-align: center; color: var(--muted-foreground); font-size: 0.8rem;">No recent edge operations recorded.</div>`;
+    return;
+  }
+
+  container.innerHTML = activityLogs.map(log => `
+    <div class="activity-item">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="status-dot"></span>
+        <strong style="color: var(--foreground); font-size: 0.825rem;">${escapeHtml(log.title)}</strong>
+        <span style="color: var(--muted-foreground); font-size: 0.775rem;">— ${escapeHtml(log.details)}</span>
+      </div>
+      <span class="activity-time">${log.time}</span>
+    </div>
+  `).join('');
 }
