@@ -419,7 +419,7 @@ function renderZonesGrid() {
         <div>
           <div class="zone-card-header">
             <div class="zone-domain">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; color: var(--primary);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
                 <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>
               </svg>
               ${z.name}
@@ -429,19 +429,19 @@ function renderZonesGrid() {
               ${z.status}
             </span>
           </div>
-          <div style="margin-top: 8px;">
+          <div style="margin-top: 10px;">
             <span class="account-badge">${z.account_name}</span>
           </div>
         </div>
 
         <div class="zone-card-meta">
-          <strong style="color: var(--foreground); font-weight: 550; font-size: 0.75rem;">Nameservers:</strong><br>
-          <span class="code-pill" style="font-size: 0.725rem; display: inline-block; margin-top: 4px; border: none; background: transparent; padding: 0;">${nsText}</span>
+          <strong style="color: var(--text-main); font-weight: 500;">Nameservers:</strong><br>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">${nsText}</span>
         </div>
 
         <div class="zone-quick-settings">
           <div class="quick-setting-row">
-            <span style="font-weight: 550;">SSL Mode:</span>
+            <span style="font-weight: 500;">SSL Mode:</span>
             <select class="select-input select-xs" id="ssl-select-${z.id}" onchange="changeCardSsl('${z.id}', this)" onclick="event.stopPropagation()">
               <option value="loading" disabled selected>Loading...</option>
               <option value="off">Off</option>
@@ -451,14 +451,14 @@ function renderZonesGrid() {
             </select>
           </div>
           <div class="quick-setting-row">
-            <span style="font-weight: 550;">Under Attack:</span>
+            <span style="font-weight: 500;">Under Attack:</span>
             <label class="switch" onclick="event.stopPropagation()">
               <input type="checkbox" id="waf-switch-${z.id}" onchange="changeCardUnderAttack('${z.id}', this)">
               <span class="slider round"></span>
             </label>
           </div>
           <div class="quick-setting-row">
-            <span style="font-weight: 550;">Dev Mode:</span>
+            <span style="font-weight: 500;">Dev Mode:</span>
             <label class="switch" onclick="event.stopPropagation()">
               <input type="checkbox" id="dev-switch-${z.id}" onchange="changeCardDevMode('${z.id}', this)">
               <span class="slider round"></span>
@@ -506,7 +506,7 @@ function switchAccountTab(tab) {
 function renderAccountsTable() {
   const container = document.getElementById('accounts-table-container');
   if (accountsList.length === 0) {
-    container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--muted-foreground);">No accounts stored yet. Add one in the tab above.</div>`;
+    container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--text-muted);">No accounts stored yet. Add one in the tab above.</div>`;
     return;
   }
 
@@ -523,10 +523,10 @@ function renderAccountsTable() {
       <tbody>
         ${accountsList.map(acc => `
           <tr>
-            <td><strong style="color: var(--foreground);">${acc.account_name}</strong></td>
+            <td><strong style="color: var(--text-main);">${acc.account_name}</strong></td>
             <td>${new Date(acc.created_at).toLocaleDateString()}</td>
             <td>
-              <span class="status-badge active" style="font-size: 0.725rem;">
+              <span class="status-badge active" style="font-size: 0.7rem;">
                 <span class="status-dot"></span> AES-GCM Encrypted
               </span>
             </td>
@@ -690,7 +690,7 @@ function escapeHtml(str) {
 // DNS CRUD
 async function loadDnsRecords() {
   const container = document.getElementById('dns-table-container');
-  container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--muted-foreground);">Loading DNS records from edge...</div>`;
+  container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--text-muted);">Loading DNS records from edge...</div>`;
 
   try {
     const resp = await fetch(`/api/zones/${activeZone.id}/dns`);
@@ -701,7 +701,7 @@ async function loadDnsRecords() {
 
     const records = await resp.json();
     if (records.length === 0) {
-      container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--muted-foreground);">No DNS records found for this domain. Add one above.</div>`;
+      container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--text-muted);">No DNS records found for this domain. Add one above.</div>`;
       return;
     }
 
@@ -723,9 +723,9 @@ async function loadDnsRecords() {
             const isMx = r.type === 'MX';
             const displayProxy = hasProxy 
               ? `<span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}</span>`
-              : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">—</span>`;
+              : `<span style="color: var(--text-dim); font-size: 0.8rem;">—</span>`;
 
-            const priorityBadge = isMx && r.priority !== undefined ? ` <span class="code-pill" style="font-size: 0.725rem; font-weight: normal; margin-left: 6px;">Priority: ${r.priority}</span>` : '';
+            const priorityBadge = isMx && r.priority !== undefined ? ` <span class="code-pill" style="background: hsla(210, 100%, 56%, 0.15); color: var(--accent-secondary); font-size: 0.7rem; font-weight: normal; margin-left: 6px;">Priority: ${r.priority}</span>` : '';
 
             // Handle display content for advanced records
             let displayContent = r.content;
@@ -738,7 +738,7 @@ async function loadDnsRecords() {
             return `
               <tr>
                 <td><span class="code-pill">${r.type}</span></td>
-                <td><strong style="color: var(--foreground);">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
+                <td><strong style="color: var(--text-main);">${escapeHtml(r.name)}</strong>${priorityBadge}</td>
                 <td><span style="font-family: 'JetBrains Mono', monospace; word-break: break-all;">${escapeHtml(displayContent)}</span></td>
                 <td>${r.ttl === 1 ? 'Auto' : `${r.ttl}s`}</td>
                 <td>${displayProxy}</td>
@@ -1334,7 +1334,7 @@ function renderTunnelsGrid() {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--muted-foreground); padding: 24px;">No tunnels found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No tunnels found.</td></tr>`;
     return;
   }
 
@@ -1346,7 +1346,7 @@ function renderTunnelsGrid() {
 
     return `
       <tr>
-        <td><strong style="color: var(--foreground);">${t.name}</strong></td>
+        <td><strong style="color: var(--text-main);">${t.name}</strong></td>
         <td><span class="${statusClass}">${t.status}</span></td>
         <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; word-break: break-all;">${t.account_id}</span></td>
         <td><span class="account-badge">${t.account_name}</span></td>

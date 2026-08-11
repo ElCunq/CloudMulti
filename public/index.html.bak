@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Hosted Multi-Account Cloudflare Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon" style="background: transparent; border-radius: 0; width: 42px; height: 42px;">
+          <img src="favicon.svg" alt="CloudMulti Logo" style="width: 100%; height: 100%;">
+        </div>
+        <div class="brand-text">
+          <h1>CloudMulti</h1>
+          <p id="lbl-nav-subtitle">Unified Multi-Account Edge Management</p>
+        </div>
+      </div>
+      <div class="nav-actions" style="display: flex; align-items: center; gap: 10px;">
+        <button id="btn-lang-switch" class="btn btn-secondary" onclick="toggleLanguage()" style="font-weight: 600; padding: 11px 16px;">
+          🌐 TR
+        </button>
+        <button id="btn-open-add-zone" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="M12 5v14"/>
+          </svg>
+          <span id="lbl-add-domain">Add Domain</span>
+        </button>
+        <button id="btn-open-accounts" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span id="lbl-accounts">Accounts</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main View Switcher -->
+    <div class="view-tabs">
+      <button id="view-tab-zones" class="view-tab-btn active" onclick="switchMainView('zones')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span id="lbl-tab-domains">Domain & DNS</span>
+      </button>
+      <button id="view-tab-tunnels" class="view-tab-btn" onclick="switchMainView('tunnels')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+        <span id="lbl-tab-tunnels">Zero Trust Tunnels</span>
+      </button>
+    </div>
+
+    <!-- Stats Ribbon -->
+    <section class="stats-ribbon">
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-accounts">Connected Accounts</span>
+          <h2 id="stat-accounts">0</h2>
+        </div>
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-zones">Aggregated Zones</span>
+          <h2 id="stat-zones">0</h2>
+        </div>
+        <div class="stat-icon" style="color: var(--accent-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-tunnels">Zero Trust Tunnels</span>
+          <h2 id="stat-tunnels">0 / 0</h2>
+        </div>
+        <div class="stat-icon" style="color: #a855f7;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-requests">Today's Requests</span>
+          <h2 id="stat-requests">0</h2>
+        </div>
+        <div class="stat-icon" style="color: #10b981;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-bandwidth">Today's Bandwidth</span>
+          <h2 id="stat-bandwidth">0 MB</h2>
+        </div>
+        <div class="stat-icon" style="color: #3b82f6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span id="lbl-stat-visitors">Unique Visitors</span>
+          <h2 id="stat-visitors">0</h2>
+        </div>
+        <div class="stat-icon" style="color: #f59e0b;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Domains Section Container -->
+    <div id="zones-view-section">
+      <!-- Controls Header -->
+    <section class="controls-header">
+      <div class="search-filter-group">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Search domains by name or account...">
+        </div>
+        <select id="account-filter" class="select-input">
+          <option value="all">All Accounts</option>
+        </select>
+      </div>
+      <div>
+        <button id="btn-refresh-zones" class="btn btn-secondary btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh Data
+        </button>
+      </div>
+    </section>
+
+    <!-- Zones Grid -->
+    <main id="zones-grid" class="zones-grid">
+      <!-- Loaded dynamically by app.js -->
+    </main>
+
+    <!-- Inline Zone Management Panel (Revealed under domain grid right when a domain is selected) -->
+    <section id="inline-zone-panel" class="inline-zone-panel" style="display: none;">
+      <div class="panel-header">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h2 id="detail-zone-title" style="font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin: 0;">example.com</h2>
+              <span id="detail-zone-badge" class="account-badge">Personal</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0 0;">Manage DNS records, instant edge cache purges, and SSL/TLS encryption right underneath.</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="closeInlineZonePanel()">
+          ✕ Close Panel
+        </button>
+      </div>
+
+      <div class="modal-tabs" style="margin-top: 24px; border-bottom: 1px solid var(--bg-glass-border); padding-bottom: 12px;">
+        <button id="tab-zone-dns" class="tab-btn active" onclick="switchZoneDetailTab('dns')">DNS Records</button>
+        <button id="tab-zone-cache" class="tab-btn" onclick="switchZoneDetailTab('cache')">Edge Cache & SSL</button>
+      </div>
+
+      <div class="panel-body" style="padding-top: 24px;">
+        <!-- Tab 1: DNS Management -->
+        <div id="section-zone-dns">
+          <form id="form-add-dns" onsubmit="handleCreateDnsRecord(event)" style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border); margin-bottom: 24px;">
+            <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-main);">+ Add New DNS Record</h4>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: grid; grid-template-columns: 110px 1fr 1.5fr 85px auto; gap: 10px; align-items: center;">
+                <select id="dns-type" class="select-input" style="width: 100%; padding-left: 12px;" onchange="onAddTypeChange()">
+                  <option value="A">A</option>
+                  <option value="AAAA">AAAA</option>
+                  <option value="CNAME">CNAME</option>
+                  <option value="TXT">TXT</option>
+                  <option value="MX">MX</option>
+                  <option value="NS">NS</option>
+                  <option value="SRV">SRV</option>
+                  <option value="CAA">CAA</option>
+                </select>
+                <input type="text" id="dns-name" class="form-input" placeholder="Name (@ or sub)" required style="padding-left: 12px;">
+                <input type="text" id="dns-content" class="form-input" placeholder="IPv4 address (e.g. 1.2.3.4)" required style="padding-left: 12px;">
+                <input type="number" id="dns-ttl" class="form-input" value="1" title="TTL (1 = Auto)" placeholder="TTL" style="padding-left: 12px;">
+                <button type="submit" id="btn-submit-dns" class="btn btn-primary btn-sm" style="padding: 10px 20px;">Add</button>
+              </div>
+
+              <!-- Advanced Settings / Sub-forms -->
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Proxy switch (visible for A, AAAA, CNAME) -->
+                <div id="dns-proxy-container" style="display: flex; align-items: center; gap: 8px; padding-left: 4px;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-muted); font-weight: 500;">
+                    <input type="checkbox" id="dns-proxied" checked>
+                    Proxy traffic through Cloudflare
+                  </label>
+                </div>
+                <!-- Priority input (visible for MX) -->
+                <div id="dns-priority-container" style="display: none; align-items: center; gap: 8px; padding-left: 4px;">
+                  <label style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; font-weight: 500;">
+                    Priority:
+                    <input type="number" id="dns-priority" class="form-input" value="10" min="0" max="65535" style="width: 80px; padding: 6px 10px;">
+                  </label>
+                </div>
+                
+                <!-- SRV inputs container (visible for SRV) -->
+                <div id="dns-srv-container" style="display: none; width: 100%; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+                  <div style="flex: 1; min-width: 110px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Service</label>
+                    <input type="text" id="dns-srv-service" class="form-input" placeholder="_sip" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 100px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Protocol</label>
+                    <select id="dns-srv-proto" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                      <option value="_tcp">_tcp</option>
+                      <option value="_udp">_udp</option>
+                      <option value="_tls">_tls</option>
+                    </select>
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Priority</label>
+                    <input type="number" id="dns-srv-priority" class="form-input" value="10" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Weight</label>
+                    <input type="number" id="dns-srv-weight" class="form-input" value="5" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Port</label>
+                    <input type="number" id="dns-srv-port" class="form-input" value="5060" min="1" max="65535" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 2; min-width: 160px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Target Host</label>
+                    <input type="text" id="dns-srv-target" class="form-input" placeholder="sipserver.domain.com" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                </div>
+
+                <!-- CAA inputs container (visible for CAA) -->
+                <div id="dns-caa-container" style="display: none; width: 100%; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+                  <div style="flex: 1; min-width: 80px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Flags</label>
+                    <input type="number" id="dns-caa-flags" class="form-input" value="0" min="0" max="255" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                  <div style="flex: 1.5; min-width: 120px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Tag</label>
+                    <select id="dns-caa-tag" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                      <option value="issue">issue (certs)</option>
+                      <option value="issuewild">issuewild (wildcards)</option>
+                      <option value="iodef">iodef (violations)</option>
+                    </select>
+                  </div>
+                  <div style="flex: 3; min-width: 180px;">
+                    <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Value (CA domain)</label>
+                    <input type="text" id="dns-caa-value" class="form-input" placeholder="letsencrypt.org" style="padding: 6px 10px; font-size: 0.8rem;">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- DNS Record Search Box -->
+          <div class="search-box" style="margin-bottom: 12px; max-width: 100%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; left: 12px;">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="dns-search-input" class="search-input" placeholder="Search DNS records by type, name, or content..." oninput="filterDnsTable()" style="padding-left: 36px; font-size: 0.85rem;">
+          </div>
+
+          <div id="dns-table-container" class="data-table-container">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Cache Purge & SSL/TLS -->
+        <div id="section-zone-cache" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <!-- Cache Purge Card -->
+            <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
+              <h3 id="lbl-cache-purge-title" style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">Instant Edge Cache Purge</h3>
+              <p id="lbl-cache-purge-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+                Purge all cached resources across Cloudflare's global edge network immediately. Users will receive fresh assets from your origin on next request.
+              </p>
+              <button id="btn-purge-cache" class="btn btn-danger" style="width: 100%;" onclick="handlePurgeCache()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+                <span id="lbl-btn-purge-all">Purge All Edge Cache</span>
+              </button>
+            </div>
+
+            <!-- SSL/TLS Card -->
+            <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--bg-glass-border);">
+              <h3 id="lbl-ssl-title" style="font-size: 1.05rem; font-weight: 600; margin-bottom: 8px;">SSL/TLS Encryption Mode</h3>
+              <p id="lbl-ssl-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                Configure how Cloudflare encrypts traffic between visitors and your origin server.
+              </p>
+              <div id="ssl-options" class="ssl-grid">
+                <div class="ssl-option" onclick="handleUpdateSsl('off')" id="ssl-off">
+                  <h4 id="lbl-ssl-off-title">Off</h4>
+                  <p id="lbl-ssl-off-desc">No encryption</p>
+                </div>
+                <div class="ssl-option" onclick="handleUpdateSsl('flexible')" id="ssl-flexible">
+                  <h4 id="lbl-ssl-flexible-title">Flexible</h4>
+                  <p id="lbl-ssl-flexible-desc">Visitor to CF only</p>
+                </div>
+                <div class="ssl-option" onclick="handleUpdateSsl('full')" id="ssl-full">
+                  <h4 id="lbl-ssl-full-title">Full</h4>
+                  <p id="lbl-ssl-full-desc">Encrypts to Origin</p>
+                </div>
+                <div class="ssl-option" onclick="handleUpdateSsl('strict')" id="ssl-strict">
+                  <h4 id="lbl-ssl-strict-title">Strict</h4>
+                  <p id="lbl-ssl-strict-desc">Valid Origin Cert</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </section>
+    </div>
+
+    <!-- Tunnels Section -->
+    <div id="tunnels-view-section" style="display: none;">
+      <section class="controls-header">
+        <div class="search-filter-group">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="tunnel-search-input" class="search-input" placeholder="Search tunnels by name or account...">
+          </div>
+        </div>
+        <div>
+          <button id="btn-refresh-tunnels" class="btn btn-secondary btn-sm" onclick="loadTunnelsData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span id="lbl-btn-refresh-tunnels">Refresh Tunnels</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tunnel Name</th>
+              <th>Status</th>
+              <th>Cloudflare Account ID</th>
+              <th>Account Tag</th>
+              <th>Tunnel ID</th>
+            </tr>
+          </thead>
+          <tbody id="tunnels-table-body">
+            <!-- Loaded dynamically by app.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accounts Management Modal -->
+  <dialog id="account-modal">
+    <div class="modal-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Cloudflare Accounts
+      </h2>
+      <button class="btn-close" onclick="document.getElementById('account-modal').close()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button id="tab-add-account" class="tab-btn active" onclick="switchAccountTab('add')">+ Add Token</button>
+      <button id="tab-list-accounts" class="tab-btn" onclick="switchAccountTab('list')">Stored Accounts</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tab 1: Add Account -->
+      <form id="form-add-account" onsubmit="handleCreateAccount(event)">
+        <div class="form-group">
+          <label class="form-label">Account Label</label>
+          <input type="text" id="input-account-name" class="form-input" placeholder="e.g. Personal Pro, Client E-commerce" required>
+          <p class="form-help">A user-friendly label to identify which domains belong to this token.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cloudflare API Token</label>
+          <input type="password" id="input-api-token" class="form-input" placeholder="Create token with Zone:Read, DNS:Edit, Cache:Purge permissions" required>
+          <p class="form-help">The token is verified instantly via Cloudflare API (`/user/tokens/verify`) and stored securely with AES-256-GCM server-side encryption.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('account-modal').close()">Cancel</button>
+          <button type="submit" id="btn-submit-account" class="btn btn-primary">Save & Verify Token</button>
+        </div>
+      </form>
+
+      <!-- Tab 2: Stored Accounts List -->
+      <div id="section-list-accounts" style="display: none;">
+        <div id="accounts-table-container" class="data-table-container">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Add Zone Modal -->
+  <dialog id="add-zone-modal">
+    <div class="modal-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Add Domain to Cloudflare
+      </h2>
+      <button class="btn-close" onclick="document.getElementById('add-zone-modal').close()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-add-zone" onsubmit="handleCreateZone(event)">
+        <div class="form-group">
+          <label class="form-label">Domain Name</label>
+          <input type="text" id="input-domain-name" class="form-input" placeholder="e.g. example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Select Associated Cloudflare Account</label>
+          <select id="select-zone-account" class="select-input" style="width: 100%;" required>
+            <!-- Populated dynamically -->
+          </select>
+          <p class="form-help">The backend will automatically resolve the underlying Cloudflare Account ID (`cf_account_id`) from your decrypted token.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-zone-modal').close()">Cancel</button>
+          <button type="submit" id="btn-submit-zone" class="btn btn-primary">Create Domain</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Edit DNS Record Modal -->
+  <dialog id="edit-dns-modal" style="max-width: 540px;">
+    <div class="modal-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; color: var(--accent-primary);">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit DNS Record
+      </h2>
+      <button class="btn-close" onclick="document.getElementById('edit-dns-modal').close()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-edit-dns" onsubmit="handleUpdateDnsRecord(event)">
+        <input type="hidden" id="edit-dns-id">
+        <div class="form-group">
+          <label class="form-label">Record Type</label>
+          <select id="edit-dns-type" class="select-input" style="width: 100%;" required onchange="onEditTypeChange()">
+            <option value="A">A</option>
+            <option value="AAAA">AAAA</option>
+            <option value="CNAME">CNAME</option>
+            <option value="TXT">TXT</option>
+            <option value="MX">MX</option>
+            <option value="NS">NS</option>
+            <option value="SRV">SRV</option>
+            <option value="CAA">CAA</option>
+          </select>
+        </div>
+        <div class="form-group" id="edit-dns-name-group">
+          <label class="form-label">Name (@ or subdomain)</label>
+          <input type="text" id="edit-dns-name" class="form-input" style="padding-left: 12px;">
+        </div>
+        <div class="form-group" id="edit-dns-content-group">
+          <label class="form-label" id="edit-dns-content-label">Content (IPv4, target domain, or TXT value)</label>
+          <input type="text" id="edit-dns-content" class="form-input" style="padding-left: 12px;">
+        </div>
+
+        <!-- SRV inputs container (visible for SRV) -->
+        <div id="edit-dns-srv-container" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Service</label>
+              <input type="text" id="edit-dns-srv-service" class="form-input" placeholder="_sip" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Protocol</label>
+              <select id="edit-dns-srv-proto" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                <option value="_tcp">_tcp</option>
+                <option value="_udp">_udp</option>
+                <option value="_tls">_tls</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Priority</label>
+              <input type="number" id="edit-dns-srv-priority" class="form-input" value="10" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Weight</label>
+              <input type="number" id="edit-dns-srv-weight" class="form-input" value="5" min="0" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Port</label>
+              <input type="number" id="edit-dns-srv-port" class="form-input" value="5060" min="1" max="65535" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Target Host</label>
+            <input type="text" id="edit-dns-srv-target" class="form-input" placeholder="sipserver.domain.com" style="padding: 6px 10px; font-size: 0.8rem;">
+          </div>
+        </div>
+
+        <!-- CAA inputs container (visible for CAA) -->
+        <div id="edit-dns-caa-container" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--bg-glass-border);">
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Flags</label>
+              <input type="number" id="edit-dns-caa-flags" class="form-input" value="0" min="0" max="255" style="padding: 6px 10px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Tag</label>
+              <select id="edit-dns-caa-tag" class="select-input" style="width: 100%; padding: 6px 10px; font-size: 0.8rem;">
+                <option value="issue">issue (certs)</option>
+                <option value="issuewild">issuewild (wildcards)</option>
+                <option value="iodef">iodef (violations)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">Value (CA domain)</label>
+            <input type="text" id="edit-dns-caa-value" class="form-input" placeholder="letsencrypt.org" style="padding: 6px 10px; font-size: 0.8rem;">
+          </div>
+        </div>
+
+        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label class="form-label">TTL (1 = Auto)</label>
+            <input type="number" id="edit-dns-ttl" class="form-input" value="1" required style="padding-left: 12px;">
+          </div>
+          <!-- Priority input for MX -->
+          <div id="edit-dns-priority-container" style="display: none;">
+            <label class="form-label">Priority</label>
+            <input type="number" id="edit-dns-priority" class="form-input" value="10" min="0" max="65535" style="padding-left: 12px;">
+          </div>
+        </div>
+        <div class="form-group" id="edit-dns-proxy-container" style="display: flex; align-items: center; padding-top: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-weight: 500;">
+            <input type="checkbox" id="edit-dns-proxied">
+            Proxy traffic through Cloudflare
+          </label>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-dns-modal').close()">Cancel</button>
+          <button type="submit" id="btn-submit-edit-dns" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Toast Stack -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
