@@ -2,6 +2,7 @@
 let accountsList = [];
 let zonesList = [];
 let activeZone = null;
+let currentDnsRecords = [];
 let currentLang = localStorage.getItem('lang') || 'en';
 
 const TRANSLATIONS = {
@@ -434,11 +435,6 @@ function renderZonesGrid() {
           </div>
         </div>
 
-        <div class="zone-card-meta">
-          <strong style="color: var(--foreground); font-weight: 550; font-size: 0.75rem;">Nameservers:</strong><br>
-          <span class="code-pill" style="font-size: 0.725rem; display: inline-block; margin-top: 4px; border: none; background: transparent; padding: 0;">${nsText}</span>
-        </div>
-
         <div class="zone-quick-settings">
           <div class="quick-setting-row">
             <span style="font-weight: 550;">SSL Mode:</span>
@@ -650,6 +646,14 @@ async function openZoneDetail(zone) {
   activeZone = zone;
   document.getElementById('detail-zone-title').textContent = zone.name;
   document.getElementById('detail-zone-badge').textContent = zone.account_name;
+  
+  // Set Nameservers dynamically in DNS panel
+  const nsVal = zone.name_servers && zone.name_servers.length > 0
+    ? zone.name_servers.join(', ')
+    : 'Pending NS check';
+  const nsElement = document.getElementById('dns-nameservers-val');
+  if (nsElement) nsElement.textContent = nsVal;
+
   switchZoneDetailTab('dns');
 
   // Highlight selected card
@@ -700,6 +704,7 @@ async function loadDnsRecords() {
     }
 
     const records = await resp.json();
+    currentDnsRecords = records;
     if (records.length === 0) {
       container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--muted-foreground);">No DNS records found for this domain. Add one above.</div>`;
       return;
@@ -722,7 +727,12 @@ async function loadDnsRecords() {
             const hasProxy = r.type === 'A' || r.type === 'AAAA' || r.type === 'CNAME';
             const isMx = r.type === 'MX';
             const displayProxy = hasProxy 
-              ? `<span class="proxy-toggle-badge ${r.proxied ? 'proxied' : 'dns-only'}">${r.proxied ? '☁️ Proxied' : '⚪ DNS Only'}</span>`
+              ? `<div class="proxy-cloud-toggle ${r.proxied ? 'proxied' : 'dns-only'}" onclick="toggleRecordProxy('${r.id}')">
+                  <svg viewBox="0 0 24 24" class="cloud-icon" fill="${r.proxied ? 'var(--primary)' : 'none'}" stroke="${r.proxied ? 'var(--primary)' : 'var(--muted-foreground)'}" stroke-width="2">
+                    <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.71 0-1.93.36-2.5.5C12.5 8 9 6 6.5 6 3.46 6 1 8.46 1 11.5c0 2.21 2.29 4.5 4.5 4.5H17.5z"/>
+                  </svg>
+                  <span class="cloud-text">${r.proxied ? 'Proxied' : 'DNS Only'}</span>
+                </div>`
               : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">—</span>`;
 
             const priorityBadge = isMx && r.priority !== undefined ? ` <span class="code-pill" style="font-size: 0.725rem; font-weight: normal; margin-left: 6px;">Priority: ${r.priority}</span>` : '';
@@ -1085,6 +1095,7 @@ async function handleCreateDnsRecord(event) {
     showToast(`DNS ${typeVal} record added!`, 'success');
     document.getElementById('dns-name').value = '';
     document.getElementById('dns-content').value = '';
+    toggleDnsForm(); // Collapse form automatically
     await loadDnsRecords();
   } catch (err) {
     showToast(`Error adding DNS record: ${err.message}`, 'error');
@@ -1374,5 +1385,62 @@ function switchMainView(view) {
     zonesTab.classList.remove('active');
     tunnelsTab.classList.add('active');
     loadTunnelsData();
+  }
+}
+
+// Collapsible Add DNS form toggle
+function toggleDnsForm() {
+  const container = document.getElementById('dns-form-container');
+  const btn = document.getElementById('btn-toggle-dns-form');
+  if (!container || !btn) return;
+  
+  if (container.classList.contains('open')) {
+    container.classList.remove('open');
+    btn.textContent = '+ Add Record';
+  } else {
+    container.classList.add('open');
+    btn.textContent = 'Cancel';
+  }
+}
+
+// Inline Cloud Proxy Toggle
+async function toggleRecordProxy(recordId) {
+  const record = currentDnsRecords.find(r => r.id === recordId);
+  if (!record) return;
+
+  const newProxied = !record.proxied;
+  showToast('Updating proxy status...', 'info');
+
+  const payload = {
+    type: record.type,
+    name: record.name,
+    ttl: record.ttl,
+    proxied: newProxied
+  };
+
+  if (record.type === 'MX' && record.priority !== null && record.priority !== undefined) {
+    payload.priority = record.priority;
+  }
+  
+  if (record.data !== null && record.data !== undefined) {
+    payload.data = record.data;
+  } else {
+    payload.content = record.content;
+  }
+
+  try {
+    const resp = await fetch(`/api/zones/${activeZone.id}/dns/${recordId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const resData = await resp.json();
+    if (!resp.ok) throw new Error(resData.error || 'Failed to update DNS record');
+
+    showToast(`Proxy status updated to ${newProxied ? 'Proxied' : 'DNS Only'}!`, 'success');
+    await loadDnsRecords();
+  } catch (err) {
+    showToast(`Error updating proxy: ${err.message}`, 'error');
   }
 }

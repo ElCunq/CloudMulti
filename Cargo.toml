@@ -28,8 +28,8 @@ hex = "0.4"
 sha2 = "0.10"
 
 [profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
+opt-level = 3
+lto = "thin"
+codegen-units = 16
 strip = true
 panic = "abort"
